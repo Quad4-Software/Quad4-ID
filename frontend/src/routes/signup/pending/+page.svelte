@@ -51,7 +51,7 @@
 		<div class="flex justify-center">
 			<LoginLogoErrorSuccessIndicator error={false} />
 		</div>
-		<h1 class="font-gloock mt-5 text-3xl font-bold sm:text-4xl">
+		<h1 class="mt-5 text-3xl font-bold font-semibold tracking-tight sm:text-4xl">
 			{m.you_are_almost_in()}
 		</h1>
 		<p class="text-muted-foreground mt-2">

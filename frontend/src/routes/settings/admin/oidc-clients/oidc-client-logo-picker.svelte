@@ -37,8 +37,8 @@
 
 	const popoverOffset = 4;
 	const viewportMargin = 16;
-	const lightBackground = 'bg-[#F5F5F5]';
-	const darkBackground = 'bg-[#262626]';
+	const lightBackground = 'bg-[#fafafa]';
+	const darkBackground = 'bg-[#16161a]';
 
 	let open = $state(false);
 	let alignOffset = $state(0);

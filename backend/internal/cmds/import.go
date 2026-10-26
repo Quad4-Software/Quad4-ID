@@ -32,7 +32,7 @@ func init() {
 
 	importCmd := &cobra.Command{
 		Use:   "import",
-		Short: "Imports all data of Pocket ID from a ZIP file",
+		Short: "Imports all data of Quad4 ID from a ZIP file",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runImport(cmd.Context(), flags)
 		},
@@ -40,19 +40,19 @@ func init() {
 
 	importCmd.Flags().StringVarP(&flags.Path, "path", "p", "quad4-id-export.zip", "Path to the ZIP file to import the data from, or '-' to read from stdin")
 	importCmd.Flags().BoolVarP(&flags.Yes, "yes", "y", false, "Skip confirmation prompts")
-	importCmd.Flags().BoolVarP(&flags.ForcefullyAcquireLock, "forcefully-acquire-lock", "", false, "Forcefully acquire exclusive access by terminating any running Pocket ID instance")
+	importCmd.Flags().BoolVarP(&flags.ForcefullyAcquireLock, "forcefully-acquire-lock", "", false, "Forcefully acquire exclusive access by terminating any running Quad4 ID instance")
 
 	rootCmd.AddCommand(importCmd)
 }
 
 // runImport handles the high-level orchestration of the import process
 func runImport(ctx context.Context, flags importFlags) error {
-	// A standalone Francis runtime owns the actor data, so this import only covers what lives in Pocket ID's own database
+	// A standalone Francis runtime owns the actor data, so this import only covers what lives in Quad4 ID's own database
 	// Nothing here can limit the replicas either, since they are hosts of the runtime's cluster rather than of a cluster in this database
 	embeddedRuntime := common.EnvConfig.HasEmbeddedFrancisRuntime()
 	if !embeddedRuntime {
 		printRemoteActorDataNotice(
-			"The actor data will NOT be restored, and Pocket ID replicas will NOT be stopped for you",
+			"The actor data will NOT be restored, and Quad4 ID replicas will NOT be stopped for you",
 			"stop every replica first, then restore the runtime with: francis runtime restore -f actors.bin",
 		)
 	}
@@ -86,7 +86,7 @@ func runImport(ctx context.Context, flags importFlags) error {
 	defer zipReader.Close()
 
 	// An archive carrying the actor data was taken from a deployment with an embedded runtime, and there is nowhere to put that data here
-	// Restoring only the Pocket ID half of it would leave the runtime holding actor state from a different deployment, so refuse rather than half-restore
+	// Restoring only the Quad4 ID half of it would leave the runtime holding actor state from a different deployment, so refuse rather than half-restore
 	if !embeddedRuntime {
 		err = ensureNoActorsBackup(&zipReader.Reader)
 		if err != nil {
@@ -94,7 +94,7 @@ func runImport(ctx context.Context, flags importFlags) error {
 		}
 	}
 
-	// Connect to the database without running migrations: the import re-creates the Pocket ID schema itself
+	// Connect to the database without running migrations: the import re-creates the Quad4 ID schema itself
 	db, pg, err := bootstrap.ConnectDatabase(ctx)
 	if err != nil {
 		return err
@@ -103,7 +103,7 @@ func runImport(ctx context.Context, flags importFlags) error {
 	importCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	// Take exclusive access to the cluster so no Pocket ID replica is running while we overwrite the database
+	// Take exclusive access to the cluster so no Quad4 ID replica is running while we overwrite the database
 	// The lease lives in the actor host's own tables, so it only exists when the runtime is embedded: with a standalone runtime the operator was told to stop the replicas instead
 	var providerOpts components.ProviderOptions
 	if embeddedRuntime {
@@ -140,7 +140,7 @@ func runImport(ctx context.Context, flags importFlags) error {
 		_ = storage.Close()
 	}()
 
-	// The actor data lives outside of the Pocket ID schema, so it's restored through Francis
+	// The actor data lives outside of the Quad4 ID schema, so it's restored through Francis
 	// Restoring requires exclusive access to the cluster, which was acquired above, and the import service skips the actor data entirely when no provider is passed
 	var actorsProvider service.ActorsBackupProvider
 	if embeddedRuntime {
@@ -188,7 +188,7 @@ func acquireExclusiveAccess(ctx context.Context, providerOpts components.Provide
 		switch {
 		case errors.Is(err, components.ErrHostsConnected):
 			//nolint:staticcheck
-			return nil, nil, errors.New("Pocket ID must be stopped before importing data - please stop the running instance or run with --forcefully-acquire-lock to terminate the other instance")
+			return nil, nil, errors.New("Quad4 ID must be stopped before importing data - please stop the running instance or run with --forcefully-acquire-lock to terminate the other instance")
 		case errors.Is(err, components.ErrExclusiveHeld):
 			return nil, nil, errors.New("another exclusive operation, such as another import, is already in progress; please wait for it to complete and try again")
 		default:

@@ -88,7 +88,7 @@ func centerSquare(img image.Image) image.Image {
 }
 
 var loadInitialsFont = sync.OnceValues(func() (*opentype.Font, error) {
-	fontBytes, err := resources.FS.ReadFile("fonts/Gloock.ttf")
+	fontBytes, err := resources.FS.ReadFile("fonts/SpaceMono-Bold.ttf")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read font file: %w", err)
 	}
@@ -103,7 +103,7 @@ var loadInitialsFont = sync.OnceValues(func() (*opentype.Font, error) {
 
 // Initials returns the initials shown on the default profile picture
 func Initials(firstName, lastName, username string) string {
-	// The font only covers Latin, so names it can't render fall back to the username, which is always ASCII
+	// The font covers Latin and Vietnamese, so names it cannot render fall back to the username, which is always ASCII
 	initials := strings.ToUpper(utils.GetFirstCharacter(firstName) + utils.GetFirstCharacter(lastName))
 	if initials != "" && canRenderInitials(initials) {
 		return initials
@@ -132,8 +132,8 @@ func canRenderInitials(initials string) bool {
 
 // CreateDefaultProfilePicture creates a profile picture with the initials
 func CreateDefaultProfilePicture(initials string) (*bytes.Buffer, error) {
-	// Create a blank image with a white background
-	img := imaging.New(profilePictureSize, profilePictureSize, color.RGBA{R: 255, G: 255, B: 255, A: 255})
+	// Create a blank image on the void raised surface
+	img := imaging.New(profilePictureSize, profilePictureSize, color.RGBA{R: 0x16, G: 0x16, B: 0x1a, A: 255})
 
 	// Load the font
 	fontFace, err := loadInitialsFont()
@@ -154,7 +154,7 @@ func CreateDefaultProfilePicture(initials string) (*bytes.Buffer, error) {
 	// Create a drawer for the image
 	drawer := &font.Drawer{
 		Dst:  img,
-		Src:  image.NewUniform(color.RGBA{R: 0, G: 0, B: 0, A: 255}), // Black text color
+		Src:  image.NewUniform(color.RGBA{R: 0xf4, G: 0xf4, B: 0xf5, A: 255}), // Paper text color
 		Face: face,
 	}
 

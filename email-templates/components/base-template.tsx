@@ -49,7 +49,7 @@ export const BaseTemplate = ({
 );
 
 // The heading font is self-hosted by the app, so it loads from the same origin as the logo and works without third-party requests
-// Clients without web font support fall back to the serif stack declared on the headings
+// Email clients have no web font support, so headings use the same sans stack as the body
 const fontFaceCss = (appURL: string) =>
 	`@font-face{font-family:'Gloock';font-style:normal;font-weight:400;mso-font-alt:'Georgia';src:url(${appURL}/fonts/Gloock-Regular.woff) format('woff');}`;
 
@@ -84,7 +84,7 @@ const logoStyle = {
 };
 
 const appNameStyle = {
-	fontFamily: fonts.serif,
+	fontFamily: fonts.sans,
 	fontSize: '20px',
 	lineHeight: '28px',
 	color: colors.foreground,

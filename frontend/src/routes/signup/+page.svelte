@@ -72,11 +72,11 @@
 	</div>
 
 	{#if data.token && invite}
-		<h1 class="font-gloock mt-5 text-3xl font-bold sm:text-4xl">
+		<h1 class="mt-5 text-3xl font-bold font-semibold tracking-tight sm:text-4xl">
 			{m.you_are_invited_to_appname({ appName: $appConfigStore.appName })}
 		</h1>
 	{:else}
-		<h1 class="font-gloock mt-5 text-3xl font-bold sm:text-4xl">
+		<h1 class="mt-5 text-3xl font-bold font-semibold tracking-tight sm:text-4xl">
 			{m.signup_to_appname({ appName: $appConfigStore.appName })}
 		</h1>
 	{/if}

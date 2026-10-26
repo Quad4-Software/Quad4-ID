@@ -135,7 +135,7 @@ func getDefaultConfig() *AppConfigModel {
 	// Values are the default ones
 	return &AppConfigModel{
 		// General
-		AppName:                   "Pocket ID",
+		AppName:                   "Quad4 ID",
 		SessionDuration:           "60",
 		HomePageURL:               "/settings/account",
 		EmailsVerified:            "false",

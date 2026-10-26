@@ -367,9 +367,10 @@ test.describe('Update application images', () => {
 		await page.request
 			.get('/api/application-images/email')
 			.then((res) => expect.soft(res.status()).toBe(200));
+		// No background image is bundled, so the endpoint reports not found until an admin uploads one
 		await page.request
 			.get('/api/application-images/background')
-			.then((res) => expect.soft(res.status()).toBe(200));
+			.then((res) => expect.soft(res.status()).toBe(404));
 
 		await page
 			.getByRole('button', { name: 'Reset to default Light Mode Logo', exact: true })

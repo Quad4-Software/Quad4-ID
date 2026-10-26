@@ -9,7 +9,7 @@ import (
 	"github.com/pocket-id/pocket-id/backend/internal/common"
 )
 
-// @title Pocket ID API
+// @title Quad4 ID API
 // @version 1.0
 // @description.markdown
 

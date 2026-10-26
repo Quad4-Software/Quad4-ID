@@ -82,9 +82,9 @@
 	>
 		<main
 			in:fade={{ duration: 200 }}
-			class="mx-auto flex w-full max-w-[1720px] flex-col gap-x-8 gap-y-8 p-4 md:p-8 lg:flex-row"
+			class="mx-auto flex w-full max-w-[1720px] flex-col gap-x-8 gap-y-8 px-4 py-5 md:px-6 lg:flex-row"
 		>
-			<div class="w-full lg:w-[200px] lg:shrink-0 xl:w-[250px]">
+			<div class="w-full lg:w-56 lg:shrink-0">
 				<div in:fly={{ x: -15, duration: 200 }} class="sticky top-6">
 					<Sidebar
 						{items}
@@ -112,9 +112,9 @@
 			<p class="text-muted-foreground py-3 text-xs">
 				{m.powered_by()}
 				<a
-					class="text-foreground transition-all hover:underline"
+					class="text-foreground transition-colors hover:underline"
 					href="https://github.com/Quad4-Software/Quad4-ID"
-					target="_blank">Pocket ID</a
+					target="_blank">Quad4 ID</a
 				>
 				({versionInformation.currentVersion})
 			</p>

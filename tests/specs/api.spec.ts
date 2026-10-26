@@ -62,7 +62,7 @@ test('Cannot create an API with the issuer as resource', async ({ page }) => {
 	await page.getByRole('button', { name: 'Save' }).click();
 
 	await expect(page.locator('[data-type="error"]')).toHaveText(
-		'Resource is reserved by Pocket ID and cannot be used for a custom API'
+		'Resource is reserved by Quad4 ID and cannot be used for a custom API'
 	);
 });
 

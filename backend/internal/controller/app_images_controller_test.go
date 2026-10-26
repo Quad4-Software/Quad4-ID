@@ -35,14 +35,14 @@ func TestAppImagesControllerGetLogo(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, res.Code)
 		assert.Equal(t, "image/svg+xml", res.Header().Get("Content-Type"))
-		assert.Contains(t, res.Body.String(), `fill="#000"`)
+		assert.Contains(t, res.Body.String(), `fill="#000000"`)
 	})
 
 	t.Run("returns the bundled dark mode logo if no custom logo is set", func(t *testing.T) {
 		res, err := getLogo(t, appImagesController, "/api/application-images/logo?light=false")
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, res.Code)
-		assert.Contains(t, res.Body.String(), `fill="#fff"`)
+		assert.Contains(t, res.Body.String(), `fill="#FFFFFF"`)
 	})
 
 	t.Run("returns not found if the bundled logo is skipped", func(t *testing.T) {

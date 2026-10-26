@@ -50,9 +50,9 @@
 	}
 
 	const activeClasses =
-		'text-primary bg-card rounded-md px-3 py-1.5 font-medium shadow-sm transition-all';
+		'text-foreground bg-accent rounded-md px-3 py-1.5 font-semibold transition-colors';
 	const inactiveClasses =
-		'hover:text-foreground hover:bg-muted/70 rounded-md px-3 py-1.5 transition-all hover:-translate-y-[2px] hover:shadow-sm';
+		'hover:text-foreground hover:bg-accent/60 rounded-md px-3 py-1.5 transition-colors';
 
 	const ROW_STAGGER = 50;
 
@@ -89,7 +89,7 @@
 				<button
 					type="button"
 					class={cn(
-						'hover:bg-muted/70 hover:text-foreground flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left transition-all',
+						'hover:bg-muted/70 hover:text-foreground flex w-full items-center justify-between rounded-md px-3 py-1.5 text-left transition-colors',
 						!$appConfigStore.disableAnimations && 'animate-fade-in'
 					)}
 					style={`animation-delay: ${delayTop(i)};`}

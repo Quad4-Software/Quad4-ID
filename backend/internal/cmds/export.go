@@ -22,7 +22,7 @@ func init() {
 
 	exportCmd := &cobra.Command{
 		Use:   "export",
-		Short: "Exports all data of Pocket ID into a ZIP file",
+		Short: "Exports all data of Quad4 ID into a ZIP file",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runExport(cmd.Context(), flags)
 		},
@@ -50,7 +50,7 @@ func runExport(ctx context.Context, flags exportFlags) error {
 		_ = storage.Close()
 	}()
 
-	// The actor data lives outside of the Pocket ID schema, so it's exported through Francis
+	// The actor data lives outside of the Quad4 ID schema, so it's exported through Francis
 	// A standalone runtime keeps it in its own store, out of reach from here, and the export service leaves the entry out of the archive when no provider is passed
 	var actorsProvider service.ActorsBackupProvider
 	if common.EnvConfig.HasEmbeddedFrancisRuntime() {

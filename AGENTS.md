@@ -58,6 +58,16 @@ token, OIDC grants) rejects them with `user_pending_approval`, SCIM reports them
 SPA keeps them on `/signup/pending`. Admins approve via `POST /api/users/:id/approve` or reject by
 deleting the user. Rejecting an invite is deleting its token.
 
+## Theming
+
+Theme tokens live in frontend/src/app.css as hex values behind the shadcn variable names for
+both dark and light modes. UI text uses Space Grotesk and code or numbers use Space Mono, both
+vendored as woff2 in frontend/static/fonts with OFL license files. The logo component is
+frontend/src/lib/components/logo.svelte and renders the Quad4 mark. Regenerate email templates
+with pnpm -C email-templates build, which writes the Go templates into
+backend/resources/email-templates. Default avatars render initials with Space Mono Bold from
+backend/resources/fonts/SpaceMono-Bold.ttf.
+
 ## Critical gotchas
 
 - **`exclude_frontend` and `unit` build tags.** Without them plain `go run`/`go test`/`golangci-lint` fail

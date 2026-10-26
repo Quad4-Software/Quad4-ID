@@ -24,7 +24,7 @@ const buttonStyle = {
 	padding: '12px 28px',
 	backgroundColor: colors.primary,
 	color: colors.primaryForeground,
-	borderRadius: radius.pill,
+	borderRadius: radius.box,
 	fontFamily: fonts.sans,
 	fontSize: '14px',
 	lineHeight: '20px',

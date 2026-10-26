@@ -15,7 +15,7 @@ export default function CardHeader({ title }: CardHeaderProps) {
 
 const titleStyle = {
 	margin: '0 0 16px 0',
-	fontFamily: fonts.serif,
+	fontFamily: fonts.sans,
 	fontSize: '26px',
 	lineHeight: '32px',
 	fontWeight: 400,

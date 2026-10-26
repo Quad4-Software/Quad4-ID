@@ -8,7 +8,7 @@
 	let {
 		value,
 		size = 200,
-		color = '#000000',
+		color = '#0a0a0b',
 		backgroundColor = 'transparent',
 		...restProps
 	}: HTMLAttributes<HTMLCanvasElement> & {

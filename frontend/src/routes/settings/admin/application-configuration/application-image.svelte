@@ -61,8 +61,8 @@
 	<FileInput {id} variant="secondary" {accept} onchange={onImageChange}>
 		<div
 			class={cn('group/image relative flex items-center rounded transition-colors', {
-				'bg-[#F5F5F5]': forceColorScheme === 'light',
-				'bg-[#262626]': forceColorScheme === 'dark',
+				'bg-[#fafafa]': forceColorScheme === 'light',
+				'bg-[#16161a]': forceColorScheme === 'dark',
 				'bg-muted': !forceColorScheme
 			})}
 		>

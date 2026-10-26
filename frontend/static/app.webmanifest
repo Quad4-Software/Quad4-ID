@@ -1,5 +1,5 @@
 {
-	"name": "Pocket ID",
+	"name": "Quad4 ID",
 	"orientation": "any",
 	"display": "minimal-ui",
 	"dir": "auto",
@@ -23,5 +23,8 @@
 			"type": "image/svg+xml",
 			"purpose": "maskable monochrome"
 		}
-	]
+	],
+	"short_name": "Quad4 ID",
+	"theme_color": "#0a0a0b",
+	"background_color": "#0a0a0b"
 }

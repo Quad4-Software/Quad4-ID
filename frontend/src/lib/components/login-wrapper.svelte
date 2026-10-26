@@ -53,7 +53,7 @@
 {:else if isDesktop.current}
 	<div
 		in:fade={{ duration: 150 }}
-		class="relative flex h-screen w-full items-center overflow-hidden text-center {backgroundImageExists
+		class="bg-background dark:starfield relative flex h-screen w-full items-center overflow-hidden text-center {backgroundImageExists
 			? 'justify-start'
 			: 'justify-center'}"
 	>
@@ -82,7 +82,7 @@
 		{#if backgroundImageExists}
 			<!-- Background image -->
 			<div
-				class="absolute top-0 right-0 bottom-0 left-[650px] z-0 m-6 overflow-hidden rounded-[40px] 2xl:left-[800px]"
+				class="border-border absolute top-0 right-0 bottom-0 left-[650px] z-0 m-6 overflow-hidden rounded-lg border 2xl:left-[800px]"
 			>
 				<img
 					src={cachedBackgroundImage.getUrl()}
@@ -96,8 +96,11 @@
 	</div>
 {:else}
 	<div
-		class="flex min-h-dvh items-center justify-center bg-cover bg-center text-center"
-		style="background-image: url({cachedBackgroundImage.getUrl()});"
+		class={cn(
+			'bg-background dark:starfield flex min-h-dvh items-center justify-center bg-cover bg-center text-center',
+			backgroundImageExists && 'bg-none!'
+		)}
+		style={backgroundImageExists ? `background-image: url(${cachedBackgroundImage.getUrl()});` : ''}
 	>
 		<Card.Root
 			class={{

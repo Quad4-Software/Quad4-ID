@@ -25,7 +25,7 @@ import (
 // It must match the value emitted by the JWT service in the access token's "amr" claim
 const authenticationMethodPhishingResistant = "phr"
 
-const defaultRPDisplayName = "Pocket ID"
+const defaultRPDisplayName = "Quad4 ID"
 
 // go-webauthn exposes the missing user-verification reason only through DevInfo
 const missingUserVerificationErrorInfo = "User verification required but flag not set by authenticator"

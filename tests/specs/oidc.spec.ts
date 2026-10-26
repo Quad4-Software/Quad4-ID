@@ -206,7 +206,7 @@ test('Authorize new client while not signed in', async ({ page }) => {
 	);
 });
 
-test('Authorize new client shows Pocket ID error when user group not allowed', async ({ page }) => {
+test('Authorize new client shows Quad4 ID error when user group not allowed', async ({ page }) => {
 	const oidcClient = oidcClients.immich;
 	const urlParams = createUrlParams(oidcClient);
 

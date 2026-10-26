@@ -137,7 +137,7 @@
 	<div class="flex justify-center">
 		<LoginLogoErrorSuccessIndicator error={!!errorMessage} />
 	</div>
-	<h1 class="font-gloock mt-5 text-2xl font-bold sm:text-4xl">
+	<h1 class="mt-5 text-2xl font-bold font-semibold tracking-tight sm:text-4xl">
 		{m.sign_in_with_another_device()}
 	</h1>
 	<p class="text-muted-foreground mt-2">
@@ -154,7 +154,7 @@
 			<Card.Content class="flex flex-col items-center gap-5">
 				<Qrcode
 					value={request.verificationUriComplete}
-					color={mode.current === 'dark' ? '#FFFFFF' : '#000000'}
+					color={mode.current === 'dark' ? '#f4f4f5' : '#0a0a0b'}
 					aria-label={m.device_login_qr_code()}
 					class="h-[12dvh]"
 				/>

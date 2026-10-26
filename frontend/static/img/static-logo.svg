@@ -1,12 +1,13 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 1015 1015" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:1.5;">
-    <g transform="matrix(1,0,0,1,-13.505,7.505)">
-        <g transform="matrix(1.04456,0,0,1.0262,2.12981,-15.6078)">
-            <rect x="1.056" y="0.019" width="1015.16" height="1014.68" style="fill:rgb(26,26,26);stroke:black;stroke-width:0.97px;"/>
-        </g>
-        <g transform="matrix(0.639507,0,0,0.639507,225.812,188.245)">
-            <path d="M506.6,0C716.12,0 886.58,170.45 886.58,379.96C886.58,462.29 860.68,540.64 811.67,606.5C763.63,671.09 697.89,718.01 621.54,742.21L600.44,748.91L550.15,500.87L564.06,494.14C609.47,472.19 638.82,425.43 638.82,375.03C638.82,302.12 579.51,242.8 506.61,242.8C433.71,242.8 374.38,302.12 374.38,375.03C374.38,425.43 403.74,472.19 449.15,494.14L462.8,500.75L381.79,999.99L155.43,999.99L155.43,0L506.61,0L506.6,0Z" style="fill:rgb(247,247,247);fill-rule:nonzero;"/>
-        </g>
-    </g>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1.16 -1.16 2.32 2.32" role="img" aria-label="Quad4">
+  <title>Quad4</title>
+  
+  <g fill="#000000" fill-rule="nonzero">
+    <path d="M 0.10097 -0.97999 L 0.09859 -0.69728 L 0.39556 -0.52385 L 0.09859 -0.35517 L 0.09859 -0.11522 L 0.83983 -0.54286 Z"/>
+    <path d="M -0.09859 -0.97762 L -0.83745 -0.54523 L -0.10097 -0.11760 L -0.09622 -0.35517 L -0.39081 -0.52385 L -0.09622 -0.69728 Z"/>
+    <path d="M -0.86121 -0.49059 L -0.86121 0.36943 L -0.62363 0.23163 L -0.62126 -0.10810 L -0.32666 0.06533 L -0.11285 -0.05821 Z"/>
+    <path d="M 0.86121 -0.49059 L 0.11998 -0.05821 L 0.33142 0.06533 L 0.62363 -0.10572 L 0.62601 0.23163 L 0.86121 0.36705 Z"/>
+    <path d="M 0.07008 0.19362 L 0.07008 0.98237 L 0.79231 0.54761 L 0.56424 0.41219 L 0.26252 0.59750 L 0.26014 0.30291 Z"/>
+    <path d="M -0.07008 0.19600 L -0.25777 0.30291 L -0.26014 0.59750 L -0.56186 0.41219 L -0.78993 0.54761 L -0.07008 0.97999 Z"/>
+  </g>
 </svg>

@@ -283,7 +283,7 @@
 					class="mb-2"
 					value={inviteLink}
 					size={180}
-					color={mode.current === 'dark' ? '#FFFFFF' : '#000000'}
+					color={mode.current === 'dark' ? '#f4f4f5' : '#0a0a0b'}
 				/>
 				<CopyToClipboard value={inviteLink}>
 					<p data-testid="invite-link" class="px-2 text-center text-sm break-all">

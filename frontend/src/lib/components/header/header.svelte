@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { m } from '#lib/paraglide/messages.js';
+	import appConfigStore from '#lib/stores/application-configuration-store.ts';
 	import userStore from '#lib/stores/user-store.ts';
 	import Logo from '../logo.svelte';
-	import Separator from '../ui/separator/separator.svelte';
 	import HeaderAvatar from './header-avatar.svelte';
 	import ModeSwitcher from './mode-switcher.svelte';
 
@@ -33,11 +33,13 @@
 	>
 		<div class="flex h-16 items-center">
 			{#if !isAuthPage}
-				<a href="/" class="flex items-center transition-opacity hover:opacity-80">
-					<Logo class="size-8" />
-					<Separator orientation="vertical" class="mr-3 ml-2 h-5! bg-neutral-600" />
-					<h1 class="font-gloock text-2xl" data-testid="application-name">
-						{m.settings()}
+				<a href="/" class="flex items-center gap-2.5 transition-opacity hover:opacity-80">
+					<Logo class="size-7" />
+					<h1
+						class="font-mono text-sm font-semibold tracking-widest uppercase"
+						data-testid="application-name"
+					>
+						{$appConfigStore.appName.toUpperCase()}
 					</h1>
 				</a>
 			{/if}

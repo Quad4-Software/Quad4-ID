@@ -30,10 +30,14 @@
 
 <Tooltip.Provider>
 	<Tooltip.Root {onOpenChange} {open} disableCloseOnTriggerClick>
-		<Tooltip.Trigger class="text-start" onclick={onClick}>{@render children()}</Tooltip.Trigger>
+		<Tooltip.Trigger class="text-start font-mono" onclick={onClick}
+			>{@render children()}</Tooltip.Trigger
+		>
 		<Tooltip.Content onclick={copyToClipboard}>
 			{#if copied}
-				<span class="flex items-center"><LucideCheck class="mr-1 size-4" /> {m.copied()}</span>
+				<span class="flex items-center font-mono"
+					><LucideCheck class="mr-1 size-4" /> {m.copied()}</span
+				>
 			{:else}
 				<span>{m.click_to_copy()}</span>
 			{/if}

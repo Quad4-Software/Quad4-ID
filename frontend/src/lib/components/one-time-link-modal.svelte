@@ -125,8 +125,8 @@
 					class="mb-2"
 					value={oneTimeLink}
 					size={150}
-					color={mode.current === 'dark' ? '#FFFFFF' : '#000000'}
-					backgroundColor={mode.current === 'dark' ? '#000000' : '#FFFFFF'}
+					color={mode.current === 'dark' ? '#f4f4f5' : '#0a0a0b'}
+					backgroundColor={mode.current === 'dark' ? '#0a0a0b' : '#fafafa'}
 				/>
 				<CopyToClipboard value={oneTimeLink!}>
 					<p data-testId="login-code-link" class="text-sm">{oneTimeLink!}</p>

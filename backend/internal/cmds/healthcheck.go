@@ -32,7 +32,7 @@ func init() {
 
 	healthcheckCmd := &cobra.Command{
 		Use:   "healthcheck",
-		Short: "Performs a healthcheck of a running Pocket ID instance",
+		Short: "Performs a healthcheck of a running Quad4 ID instance",
 		Run: func(cmd *cobra.Command, args []string) {
 			start := time.Now()
 
@@ -65,8 +65,8 @@ func init() {
 		},
 	}
 
-	healthcheckCmd.Flags().StringVarP(&flags.Endpoint, "endpoint", "e", defaultEndpoint(), "Endpoint for Pocket ID")
-	healthcheckCmd.Flags().StringVar(&flags.UnixSocket, "unix-socket", "", "UNIX socket path for Pocket ID")
+	healthcheckCmd.Flags().StringVarP(&flags.Endpoint, "endpoint", "e", defaultEndpoint(), "Endpoint for Quad4 ID")
+	healthcheckCmd.Flags().StringVar(&flags.UnixSocket, "unix-socket", "", "UNIX socket path for Quad4 ID")
 	healthcheckCmd.Flags().BoolVarP(&flags.Verbose, "verbose", "v", false, "Enable verbose mode")
 
 	rootCmd.AddCommand(healthcheckCmd)

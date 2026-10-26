@@ -95,7 +95,7 @@ func (s *Service) Create(ctx context.Context, input apiCreateDto) (api API, err 
 
 	// Reject the issuer as an audience so a custom API cannot impersonate Pocket ID's own identity tokens
 	if isIssuerAudience(input.Resource, s.issuer) {
-		return API{}, apperror.InvalidField("resource", "reserved", "is reserved by Pocket ID and cannot be used for a custom API")
+		return API{}, apperror.InvalidField("resource", "reserved", "is reserved by Quad4 ID and cannot be used for a custom API")
 	}
 
 	api = API{
@@ -184,7 +184,7 @@ func (s *Service) UpdatePermissions(ctx context.Context, id string, input apiPer
 			return API{}, apperror.InvalidField(field, "invalid_format", "contains characters that are not valid in an OAuth scope")
 		}
 		if isPermissionKeyReserved(permission.Key) {
-			return API{}, apperror.InvalidField(field, "reserved", "is reserved by Pocket ID")
+			return API{}, apperror.InvalidField(field, "reserved", "is reserved by Quad4 ID")
 		}
 		_, ok := seen[permission.Key]
 		if ok {

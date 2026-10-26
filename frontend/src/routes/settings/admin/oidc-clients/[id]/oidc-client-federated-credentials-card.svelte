@@ -88,7 +88,7 @@
 					{m.federated_client_credentials_description()}
 					<a
 						class="underline underline-offset-4"
-						href="https://pocket-id.org/docs/guides/oidc-client-authentication"
+						href="https://github.com/Quad4-Software/Quad4-ID"
 						target="_blank"
 						rel="noreferrer"
 					>

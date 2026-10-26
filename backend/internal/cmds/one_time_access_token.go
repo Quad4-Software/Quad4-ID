@@ -56,7 +56,7 @@ var oneTimeAccessTokenCmd = &cobra.Command{
 		}
 
 		// One-time access tokens live in the actor state store, which is reached differently depending on where the actor runtime runs
-		// The CLI never runs the full actor host: with an embedded runtime it writes to Pocket ID's database directly, and with a standalone one it joins the cluster as a client for just long enough to write the token
+		// The CLI never runs the full actor host: with an embedded runtime it writes to Quad4 ID's database directly, and with a standalone one it joins the cluster as a client for just long enough to write the token
 		token, err := storeOneTimeAccessToken(cmd.Context(), db, pg, instanceID, user.ID)
 		if err != nil {
 			return fmt.Errorf("failed to create access token: %w", err)
@@ -90,7 +90,7 @@ func storeOneTimeAccessToken(ctx context.Context, db *gorm.DB, pg *pgxpool.Pool,
 		return token, nil
 	}
 
-	// With the embedded runtime the actor state lives in Pocket ID's own database, which a minimal state store writes to without running an actor host
+	// With the embedded runtime the actor state lives in Quad4 ID's own database, which a minimal state store writes to without running an actor host
 	actorStore, err := bootstrap.NewActorStateStore(bootstrap.NewActorsOpts{
 		DB:         db,
 		Postgres:   pg,

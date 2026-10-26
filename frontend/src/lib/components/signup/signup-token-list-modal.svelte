@@ -109,7 +109,7 @@
 {/snippet}
 
 {#snippet UsageCell({ item }: { item: SignupToken })}
-	<div class="flex items-center gap-1">
+	<div class="flex items-center gap-1 font-mono">
 		{item.usageCount} / {item.usageLimit}
 	</div>
 {/snippet}
