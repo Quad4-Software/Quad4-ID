@@ -36,7 +36,7 @@ test.describe('API Key Management', () => {
 		await expect(page.getByRole('cell', { name })).toBeVisible();
 
 		// Verify the token is displayed (should be 32 characters)
-		const token = await page.locator('.font-mono').textContent();
+		const token = await page.locator('span.font-mono.break-all').textContent();
 		expect(token?.length).toBe(32);
 
 		// Close the dialog
