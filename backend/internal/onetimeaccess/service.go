@@ -210,6 +210,9 @@ func (s *Service) completeTokenExchange(ctx context.Context, dbConfig *appconfig
 	if user.Disabled {
 		return model.User{}, model.LoginTokens{}, apperror.UserDisabled()
 	}
+	if user.ApprovalPending {
+		return model.User{}, model.LoginTokens{}, apperror.UserPendingApproval()
+	}
 
 	accessToken, err := s.signer.GenerateAccessToken(
 		user,

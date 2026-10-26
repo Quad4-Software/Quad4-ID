@@ -89,7 +89,7 @@ func TestSignUpConsumesTokenOnSuccess(t *testing.T) {
 	db := testutils.NewDatabaseForTest(t)
 	svc := newSignupServiceForTest(t, db, fakeUserCreator{user: model.User{Base: model.Base{ID: "new-user"}}})
 
-	token, err := svc.CreateSignupToken(t.Context(), time.Hour, 2, nil)
+	token, err := svc.CreateSignupToken(t.Context(), time.Hour, 2, false, "", nil)
 	require.NoError(t, err)
 
 	config := appconfig.NewTestConfig(nil)
@@ -110,7 +110,7 @@ func TestSignUpCompensatesTokenOnFailure(t *testing.T) {
 	boom := errors.New("could not create user")
 	svc := newSignupServiceForTest(t, db, fakeUserCreator{err: boom})
 
-	token, err := svc.CreateSignupToken(t.Context(), time.Hour, 2, nil)
+	token, err := svc.CreateSignupToken(t.Context(), time.Hour, 2, false, "", nil)
 	require.NoError(t, err)
 
 	config := appconfig.NewTestConfig(nil)
@@ -235,4 +235,73 @@ func TestSignUpRequiresEmailVerification(t *testing.T) {
 		require.NotNil(t, user.EmailVerificationDeadline)
 		require.Equal(t, []string{user.ID}, sender.userIDs)
 	})
+}
+
+func TestSignUpWithApprovalRequiredMarksUserPending(t *testing.T) {
+	db := testutils.NewDatabaseForTest(t)
+	svc := newSignupServiceForTest(t, db, dbUserCreator{})
+
+	token, err := svc.CreateSignupToken(t.Context(), time.Hour, 5, true, "for sam", nil)
+	require.NoError(t, err)
+	require.True(t, token.RequireApproval)
+	require.Equal(t, "for sam", token.Note)
+
+	config := appconfig.NewTestConfig(nil)
+	user, _, err := svc.SignUp(t.Context(), config, signUpDto{
+		Username: "pendinguser",
+		Token:    token.Token,
+	}, "1.2.3.4", "test-agent")
+	require.NoError(t, err)
+	require.True(t, user.ApprovalPending)
+
+	var stored model.User
+	require.NoError(t, db.First(&stored, "id = ?", user.ID).Error)
+	require.True(t, stored.ApprovalPending)
+}
+
+func TestSignUpWithAutomaticApprovalLeavesUserActive(t *testing.T) {
+	db := testutils.NewDatabaseForTest(t)
+	svc := newSignupServiceForTest(t, db, dbUserCreator{})
+
+	token, err := svc.CreateSignupToken(t.Context(), time.Hour, 1, false, "", nil)
+	require.NoError(t, err)
+	require.False(t, token.RequireApproval)
+
+	config := appconfig.NewTestConfig(nil)
+	user, _, err := svc.SignUp(t.Context(), config, signUpDto{
+		Username: "activeuser",
+		Token:    token.Token,
+	}, "1.2.3.4", "test-agent")
+	require.NoError(t, err)
+	require.False(t, user.ApprovalPending)
+}
+
+func TestGetSignupTokenStatusDoesNotConsume(t *testing.T) {
+	db := testutils.NewDatabaseForTest(t)
+	svc := newSignupServiceForTest(t, db, dbUserCreator{})
+
+	token, err := svc.CreateSignupToken(t.Context(), time.Hour, 1, true, "", nil)
+	require.NoError(t, err)
+
+	res, err := svc.GetSignupTokenStatus(t.Context(), token.Token)
+	require.NoError(t, err)
+	require.Equal(t, signupTokenConsumeOK, res.Status)
+	require.True(t, res.RequireApproval)
+	require.False(t, res.ExpiresAt.IsZero())
+
+	// The check must not have consumed the single use, so signup still works
+	config := appconfig.NewTestConfig(nil)
+	_, _, err = svc.SignUp(t.Context(), config, signUpDto{
+		Username: "invitee",
+		Token:    token.Token,
+	}, "1.2.3.4", "test-agent")
+	require.NoError(t, err)
+
+	res, err = svc.GetSignupTokenStatus(t.Context(), token.Token)
+	require.NoError(t, err)
+	require.Equal(t, signupTokenConsumeLimitReached, res.Status)
+
+	res, err = svc.GetSignupTokenStatus(t.Context(), "missing-token")
+	require.NoError(t, err)
+	require.Equal(t, signupTokenConsumeNotFound, res.Status)
 }

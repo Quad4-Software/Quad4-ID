@@ -28,6 +28,13 @@ func NewAuthorization(apiKeyModule *apikey.Module, userService *service.UserServ
 	)
 }
 
+// restrictPending withholds the scopes a user waiting for admin approval may not use yet
+func restrictPending(user *model.User, principal *authz.Principal) {
+	if user.ApprovalPending {
+		principal.RestrictPending()
+	}
+}
+
 // restrictUnverified withholds the scopes a user who still has to verify their email may not use yet
 func restrictUnverified(ctx context.Context, appConfig appconfig.AppConfigResolver, user *model.User, principal *authz.Principal) error {
 	if !emailverification.CanBePending(user) {
@@ -101,6 +108,7 @@ func (a *SessionAuthenticator) Authenticate(c *gin.Context) (*authz.Principal, e
 	if err != nil {
 		return nil, err
 	}
+	restrictPending(&user, principal)
 
 	return principal, nil
 }
@@ -152,6 +160,7 @@ func (a *APIKeyAuthenticator) Authenticate(c *gin.Context) (*authz.Principal, er
 	if err != nil {
 		return nil, err
 	}
+	restrictPending(&user, principal)
 
 	return principal, nil
 }

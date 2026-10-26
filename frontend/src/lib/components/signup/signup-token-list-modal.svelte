@@ -27,21 +27,27 @@
 
 	function formatDate(dateStr: string | undefined) {
 		if (!dateStr) return m.never();
-		return new Date(dateStr).toLocaleString();
+		const date = new Date(dateStr);
+		const diffMs = date.getTime() - Date.now();
+		if (diffMs > 0 && diffMs < 24 * 60 * 60 * 1000) {
+			const hours = Math.ceil(diffMs / (60 * 60 * 1000));
+			return m.in_hours({ count: hours });
+		}
+		return date.toLocaleDateString();
 	}
 
-	async function deleteToken(token: SignupToken) {
+	async function revokeInvite(token: SignupToken) {
 		openConfirmDialog({
-			title: m.delete_signup_token(),
-			message: m.are_you_sure_you_want_to_delete_this_signup_token(),
+			title: m.revoke_invite(),
+			message: m.are_you_sure_you_want_to_revoke_this_invite(),
 			confirm: {
-				label: m.delete(),
+				label: m.revoke(),
 				destructive: true,
 				action: async () => {
 					try {
 						await userService.deleteSignupToken(token.id);
 						await tableRef.refresh();
-						toast.success(m.signup_token_deleted_successfully());
+						toast.success(m.invite_revoked());
 					} catch (e) {
 						axiosErrorToast(e);
 					}
@@ -54,35 +60,10 @@
 		open = isOpen;
 	}
 
-	function isTokenExpired(expiresAt: string) {
-		return new Date(expiresAt) < new Date();
-	}
-
-	function isTokenUsedUp(token: SignupToken) {
-		return token.usageCount >= token.usageLimit;
-	}
-
-	function getTokenStatus(token: SignupToken) {
-		if (isTokenExpired(token.expiresAt)) return 'expired';
-		if (isTokenUsedUp(token)) return 'used-up';
-		return 'active';
-	}
-
-	function getStatusBadge(status: string): { variant: BadgeVariant; text: string } {
-		switch (status) {
-			case 'expired':
-				return { variant: 'destructive', text: m.expired() };
-			case 'used-up':
-				return { variant: 'secondary', text: m.used_up() };
-			default:
-				return { variant: 'default', text: m.active() };
-		}
-	}
-
-	function copySignupLink(token: SignupToken) {
-		const signupLink = `${page.url.origin}/st/${token.token}`;
+	function copyInviteLink(token: SignupToken) {
+		const inviteLink = `${page.url.origin}/st/${token.token}`;
 		navigator.clipboard
-			.writeText(signupLink)
+			.writeText(inviteLink)
 			.then(() => {
 				toast.success(m.copied());
 			})
@@ -92,10 +73,9 @@
 	}
 
 	const columns: AdvancedTableColumn<SignupToken>[] = [
-		{ label: m.token(), column: 'token', cell: TokenCell },
-		{ label: m.status(), key: 'status', cell: StatusCell },
+		{ label: m.who_is_it_for(), key: 'note', cell: NoteCell },
 		{
-			label: m.usage(),
+			label: m.uses(),
 			column: 'usageCount',
 			sortable: true,
 			cell: UsageCell
@@ -106,70 +86,52 @@
 			sortable: true,
 			value: (item) => formatDate(item.expiresAt)
 		},
-		{
-			key: 'userGroups',
-			label: m.user_groups(),
-			value: (item) => item.userGroups.map((g) => g.name).join(', '),
-			hidden: true
-		},
-		{
-			label: m.created(),
-			column: 'createdAt',
-			sortable: true,
-			hidden: true,
-			value: (item) => formatDate(item.createdAt)
-		}
+		{ label: m.approval(), column: 'requireApproval', sortable: true, cell: ApprovalCell }
 	];
 
 	const actions: CreateAdvancedTableActions<SignupToken> = () => [
 		{
-			label: m.copy(),
+			label: m.copy_link(),
 			icon: Copy,
-			onClick: (token) => copySignupLink(token)
+			onClick: (token) => copyInviteLink(token)
 		},
 		{
-			label: m.delete(),
+			label: m.revoke(),
 			icon: Trash2,
 			variant: 'danger',
-			onClick: (token) => deleteToken(token)
+			onClick: (token) => revokeInvite(token)
 		}
 	];
 </script>
 
-{#snippet TokenCell({ item }: { item: SignupToken })}
-	<span class="font-mono text-xs">
-		{item.token.substring(0, 3)}...{item.token.substring(Math.max(item.token.length - 4, 0))}
-	</span>
-{/snippet}
-
-{#snippet StatusCell({ item }: { item: SignupToken })}
-	{@const status = getTokenStatus(item)}
-	{@const statusBadge = getStatusBadge(status)}
-	<Badge class="rounded-full" variant={statusBadge.variant}>
-		{statusBadge.text}
-	</Badge>
+{#snippet NoteCell({ item }: { item: SignupToken })}
+	<span>{item.note || '—'}</span>
 {/snippet}
 
 {#snippet UsageCell({ item }: { item: SignupToken })}
 	<div class="flex items-center gap-1">
-		{item.usageCount}
-		{m.of()}
-		{item.usageLimit}
+		{item.usageCount} / {item.usageLimit}
 	</div>
 {/snippet}
 
+{#snippet ApprovalCell({ item }: { item: SignupToken })}
+	<Badge class="rounded-full" variant={item.requireApproval ? 'secondary' : 'default'}>
+		{item.requireApproval ? m.manual_approval() : m.automatic()}
+	</Badge>
+{/snippet}
+
 <Dialog.Root {open} {onOpenChange}>
-	<Dialog.Content class="sm-min-w[500px] max-h-[90vh] min-w-[90vw] overflow-auto lg:min-w-[1000px]">
+	<Dialog.Content class="sm-min-w[500px] max-h-[90vh] min-w-[90vw] overflow-auto lg:min-w-[800px]">
 		<Dialog.Header>
-			<Dialog.Title>{m.manage_signup_tokens()}</Dialog.Title>
+			<Dialog.Title>{m.manage_invites()}</Dialog.Title>
 			<Dialog.Description>
-				{m.view_and_manage_active_signup_tokens()}
+				{m.view_and_manage_active_invites()}
 			</Dialog.Description>
 		</Dialog.Header>
 
 		<div class="flex-1 overflow-hidden">
 			<AdvancedTable
-				id="signup-token-list"
+				id="invite-list"
 				withoutSearch={true}
 				fetchCallback={userService.listSignupTokens}
 				defaultSort={{ column: 'createdAt', direction: 'asc' }}

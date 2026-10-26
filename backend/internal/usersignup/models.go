@@ -9,9 +9,11 @@ import (
 type SignupToken struct {
 	model.Base
 
-	Token      string            `json:"token"`
-	ExpiresAt  datatype.DateTime `json:"expiresAt" sortable:"true"`
-	UsageLimit int               `json:"usageLimit" sortable:"true"`
-	UsageCount int               `json:"usageCount" sortable:"true"`
-	UserGroups []model.UserGroup `json:"userGroups"`
+	Token           string            `json:"token"`
+	ExpiresAt       datatype.DateTime `json:"expiresAt" sortable:"true"`
+	UsageLimit      int               `json:"usageLimit" sortable:"true"`
+	UsageCount      int               `json:"usageCount" sortable:"true"`
+	RequireApproval bool              `json:"requireApproval" sortable:"true"`
+	Note            string            `json:"note"`
+	UserGroups      []model.UserGroup `json:"userGroups"`
 }

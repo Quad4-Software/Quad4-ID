@@ -46,6 +46,18 @@ git tag vX.Y.Z && git push origin vX.Y.Z   # the release workflow builds binarie
 The container image is built from the single `docker/Dockerfile` (multi-stage, from source) and runs
 rootless as uid 65532 on a read-only filesystem: writable paths are /app/data (volume) and /tmp (tmpfs).
 
+## Invites
+
+Signup tokens are exposed to admins as invites (`backend/internal/usersignup`). A token is actor
+state (no DB table) with a usage limit, TTL, optional note, user groups and a `requireApproval`
+flag. `GET /api/signup/invites/:token` peeks a token without consuming it. When requireApproval is
+set, the new user gets `users.approval_pending = true`: SessionAuthenticator restricts their
+principal to the same scope set as unverified-email users (own account, passkey enrollment, sign
+out), every sign-in path that mints an access token (WebAuthn login, device login, one-time access
+token, OIDC grants) rejects them with `user_pending_approval`, SCIM reports them inactive, and the
+SPA keeps them on `/signup/pending`. Admins approve via `POST /api/users/:id/approve` or reject by
+deleting the user. Rejecting an invite is deleting its token.
+
 ## Critical gotchas
 
 - **`exclude_frontend` and `unit` build tags.** Without them plain `go run`/`go test`/`golangci-lint` fail

@@ -8,11 +8,14 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import UserService from '#lib/services/user-service.ts';
 	import appConfigStore from '#lib/stores/application-configuration-store.ts';
-	import type { UserCreate } from '#lib/types/user.type.ts';
-	import { ChevronDown, LucideMinus, UserPen, UserPlus } from '@lucide/svelte';
+	import type { User, UserCreate } from '#lib/types/user.type.ts';
+	import { axiosErrorToast } from '#lib/utils/error-util.ts';
+	import { ChevronDown, LucideMinus, MailPlus, UserPen, UserPlus } from '@lucide/svelte';
+	import { onMount } from 'svelte';
 	import { toast } from 'svelte-sonner';
 	import { slide } from 'svelte/transition';
 	import type { PageProps } from './$types';
+	import { deleteUserAction } from './user-actions';
 	import UserForm from './user-form.svelte';
 	import UserList from './user-list.svelte';
 
@@ -23,8 +26,35 @@
 	let signupTokenModalOpen = $state(false);
 	let signupTokenListModalOpen = $state(false);
 
+	let pendingUsers: User[] = $state([]);
+
 	let userListRef: UserList;
 	const userService = new UserService();
+
+	async function refreshAll() {
+		await Promise.all([userListRef?.refresh(), loadPending()]);
+	}
+
+	async function loadPending() {
+		try {
+			const res = await userService.list({
+				filters: { approvalPending: [true] }
+			});
+			pendingUsers = res.data;
+		} catch (e) {
+			axiosErrorToast(e);
+		}
+	}
+
+	async function approveUser(user: User) {
+		try {
+			await userService.approve(user.id);
+			toast.success(m.user_approved());
+			await refreshAll();
+		} catch (e) {
+			axiosErrorToast(e);
+		}
+	}
 
 	async function createUser(user: UserCreate) {
 		try {
@@ -34,6 +64,8 @@
 			await userListRef.refresh();
 		}
 	}
+
+	onMount(loadPending);
 </script>
 
 <svelte:head>
@@ -56,34 +88,31 @@
 					>
 				</div>
 				{#if !expandAddUser}
-					{#if $appConfigStore.allowUserSignups !== 'disabled'}
+					<div class="flex items-center gap-2">
+						<Button onclick={() => (signupTokenModalOpen = true)}>
+							<MailPlus class="size-4" />
+							{m.invite()}
+						</Button>
 						<ButtonGroup.Root>
-							<Button onclick={() => (expandAddUser = true)}>
+							<Button variant="secondary" onclick={() => (expandAddUser = true)}>
 								{selectedCreateOptions}
 							</Button>
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger>
 									{#snippet child({ props })}
-										<Button {...props} size="icon" aria-label="Create options">
+										<Button {...props} variant="secondary" size="icon" aria-label="Create options">
 											<ChevronDown />
 										</Button>
 									{/snippet}
 								</DropdownMenu.Trigger>
 								<DropdownMenu.Content align="end">
-									<DropdownMenu.Item onclick={() => (signupTokenModalOpen = true)}>
-										{m.create_signup_token()}
-									</DropdownMenu.Item>
 									<DropdownMenu.Item onclick={() => (signupTokenListModalOpen = true)}>
-										{m.view_active_signup_tokens()}
+										{m.manage_invites()}
 									</DropdownMenu.Item>
 								</DropdownMenu.Content>
 							</DropdownMenu.Root>
 						</ButtonGroup.Root>
-					{:else}
-						<Button class="w-full md:w-auto" onclick={() => (expandAddUser = true)}
-							>{m.add_user()}</Button
-						>
-					{/if}
+					</div>
 				{:else}
 					<Button class="h-8 p-3" variant="ghost" onclick={() => (expandAddUser = false)}>
 						<LucideMinus class="size-5" />
@@ -104,6 +133,43 @@
 	</Card.Root>
 </div>
 
+{#if pendingUsers.length > 0}
+	<div>
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>
+					<UserPen class="text-primary/80 size-5" />
+					{m.waiting_for_approval()}
+				</Card.Title>
+			</Card.Header>
+			<Card.Content>
+				<div class="divide-y">
+					{#each pendingUsers as user (user.id)}
+						<div class="flex items-center justify-between gap-4 py-3">
+							<div>
+								<p class="font-medium">{user.displayName || user.username}</p>
+								<p class="text-muted-foreground text-sm">
+									{user.username}{user.email ? ` · ${user.email}` : ''}
+								</p>
+							</div>
+							<div class="flex items-center gap-2">
+								<Button size="sm" onclick={() => approveUser(user)}>{m.approve()}</Button>
+								<Button
+									size="sm"
+									variant="secondary"
+									onclick={() => deleteUserAction(user, refreshAll).onClick?.(user)}
+								>
+									{m.reject()}
+								</Button>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</Card.Content>
+		</Card.Root>
+	</div>
+{/if}
+
 <div>
 	<Card.Root>
 		<Card.Header>
@@ -113,7 +179,7 @@
 			</Card.Title>
 		</Card.Header>
 		<Card.Content>
-			<UserList bind:this={userListRef} />
+			<UserList bind:this={userListRef} onChange={refreshAll} />
 		</Card.Content>
 	</Card.Root>
 </div>

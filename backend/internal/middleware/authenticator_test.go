@@ -51,12 +51,15 @@ func TestAuthorizationWithRealCredentials(t *testing.T) {
 	user := createUserForAuthorizationTest(t, db, "auth-user", false, false, true)
 	admin := createUserForAuthorizationTest(t, db, "auth-admin", true, false, true)
 	disabled := createUserForAuthorizationTest(t, db, "auth-disabled", true, true, true)
+	pending := createUserForAuthorizationTest(t, db, "auth-pending", false, false, true, true)
 	unverified := createUserForAuthorizationTest(t, db, "auth-unverified", false, false, false)
 	unverifiedAdmin := createUserForAuthorizationTest(t, db, "auth-unverified-admin", true, false, false)
 
 	userSession, err := jwtService.GenerateAccessToken(user, "", time.Hour)
 	require.NoError(t, err)
 	unverifiedSession, err := jwtService.GenerateAccessToken(unverified, "", time.Hour)
+	require.NoError(t, err)
+	pendingSession, err := jwtService.GenerateAccessToken(pending, "", time.Hour)
 	require.NoError(t, err)
 	userAPIKey := createAPIKeyForAuthorizationTest(t, db, user, "user-raw-api-key")
 	adminAPIKey := createAPIKeyForAuthorizationTest(t, db, admin, "admin-raw-api-key")
@@ -104,6 +107,11 @@ func TestAuthorizationWithRealCredentials(t *testing.T) {
 		{name: "unverified user session on apps route", path: "/api/apps", authorization: "Bearer " + unverifiedSession, status: http.StatusForbidden, errorCode: "email_verification_required"},
 		{name: "unverified user session on authorize route", path: "/api/authorize", authorization: "Bearer " + unverifiedSession, status: http.StatusForbidden, errorCode: "email_verification_required"},
 		{name: "verified user session on authorize route", path: "/api/authorize", authorization: "Bearer " + userSession, status: http.StatusOK, userID: user.ID},
+		{name: "pending user session on session-only route", path: "/api/session-only", authorization: "Bearer " + pendingSession, status: http.StatusOK, userID: pending.ID},
+		{name: "pending user session on account route", path: "/api/account", authorization: "Bearer " + pendingSession, status: http.StatusOK, userID: pending.ID},
+		{name: "pending user session on apps route", path: "/api/apps", authorization: "Bearer " + pendingSession, status: http.StatusForbidden, errorCode: "user_pending_approval"},
+		{name: "pending user session on authorize route", path: "/api/authorize", authorization: "Bearer " + pendingSession, status: http.StatusForbidden, errorCode: "user_pending_approval"},
+		{name: "pending user session on admin route", path: "/api/admin", authorization: "Bearer " + pendingSession, status: http.StatusForbidden, errorCode: "forbidden"},
 		{name: "unverified user API key on account route", path: "/api/account", apiKey: unverifiedAPIKey, status: http.StatusOK, userID: unverified.ID},
 		{name: "unverified user API key on apps route", path: "/api/apps", apiKey: unverifiedAPIKey, status: http.StatusForbidden, errorCode: "email_verification_required"},
 		{name: "unverified admin API key on admin route", path: "/api/admin", apiKey: unverifiedAdminAPIKey, status: http.StatusOK, userID: unverifiedAdmin.ID},
@@ -140,18 +148,19 @@ func TestAuthorizationWithRealCredentials(t *testing.T) {
 	}
 }
 
-func createUserForAuthorizationTest(t *testing.T, db *gorm.DB, username string, isAdmin, disabled, emailVerified bool) model.User {
+func createUserForAuthorizationTest(t *testing.T, db *gorm.DB, username string, isAdmin, disabled, emailVerified bool, approvalPending ...bool) model.User {
 	t.Helper()
 
 	user := model.User{
-		Username:      username,
-		Email:         new(username + "@example.com"),
-		EmailVerified: emailVerified,
-		FirstName:     "Auth",
-		LastName:      "User",
-		DisplayName:   "Auth User",
-		IsAdmin:       isAdmin,
-		Disabled:      disabled,
+		Username:        username,
+		Email:           new(username + "@example.com"),
+		EmailVerified:   emailVerified,
+		FirstName:       "Auth",
+		LastName:        "User",
+		DisplayName:     "Auth User",
+		IsAdmin:         isAdmin,
+		Disabled:        disabled,
+		ApprovalPending: len(approvalPending) > 0 && approvalPending[0],
 	}
 
 	err := db.Create(&user).Error

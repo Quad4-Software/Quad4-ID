@@ -11,6 +11,7 @@ import (
 	"github.com/pocket-id/pocket-id/backend/internal/apperror"
 	"github.com/pocket-id/pocket-id/backend/internal/dto"
 	"github.com/pocket-id/pocket-id/backend/internal/httpserver"
+	datatype "github.com/pocket-id/pocket-id/backend/internal/model/types"
 	"github.com/pocket-id/pocket-id/backend/internal/utils"
 	"github.com/pocket-id/pocket-id/backend/internal/utils/cookie"
 )
@@ -99,7 +100,7 @@ func (h *handler) createSignupToken(c *gin.Context) error {
 		ttl = defaultSignupTokenDuration
 	}
 
-	signupToken, err := h.service.CreateSignupToken(c.Request.Context(), ttl, input.UsageLimit, input.UserGroupIDs)
+	signupToken, err := h.service.CreateSignupToken(c.Request.Context(), ttl, input.UsageLimit, input.RequireApproval, input.Note, input.UserGroupIDs)
 	if err != nil {
 		return err
 	}
@@ -161,6 +162,32 @@ func (h *handler) deleteSignupToken(c *gin.Context) error {
 	}
 
 	c.Status(http.StatusNoContent)
+	return nil
+}
+
+// getSignupTokenStatusHandler godoc
+// @Summary Check invite status
+// @Description Report whether an invite token is still usable without consuming a use
+// @Tags Users
+// @Param token path string true "Invite token"
+// @Success 200 {object} signupTokenStatusDto
+// @Router /api/signup/invites/{token} [get]
+func (h *handler) getSignupTokenStatus(c *gin.Context) error {
+	res, err := h.service.GetSignupTokenStatus(c.Request.Context(), c.Param("token"))
+	if err != nil {
+		return err
+	}
+
+	out := signupTokenStatusDto{
+		Valid:           res.Status == signupTokenConsumeOK,
+		RequireApproval: res.RequireApproval,
+	}
+	if !res.ExpiresAt.IsZero() {
+		expiresAt := datatype.DateTime(res.ExpiresAt)
+		out.ExpiresAt = &expiresAt
+	}
+
+	c.JSON(http.StatusOK, out)
 	return nil
 }
 

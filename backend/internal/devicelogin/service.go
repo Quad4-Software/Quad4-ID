@@ -270,6 +270,8 @@ func (s *Service) loadExchangeUser(ctx context.Context, userID string) (model.Us
 		return model.User{}, dto.UserDto{}, err
 	case user.Disabled:
 		return model.User{}, dto.UserDto{}, apperror.UserDisabled()
+	case user.ApprovalPending:
+		return model.User{}, dto.UserDto{}, apperror.UserPendingApproval()
 	}
 
 	var userDTO dto.UserDto

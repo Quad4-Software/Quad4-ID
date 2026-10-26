@@ -1,7 +1,7 @@
 import userStore from '#lib/stores/user-store.ts';
 import type { ListRequestOptions, Paginated } from '#lib/types/list-request.type.ts';
 import type { Passkey } from '#lib/types/passkey.type.ts';
-import type { SignupToken } from '#lib/types/signup-token.type.ts';
+import type { InviteStatus, SignupToken } from '#lib/types/signup-token.type.ts';
 import type { UserGroup } from '#lib/types/user-group.type.ts';
 import type {
 	AccountUpdate,
@@ -95,10 +95,28 @@ export default class UserService extends APIService {
 	createSignupToken = async (
 		ttl: string | number,
 		usageLimit: number,
-		userGroupIds: string[] = []
+		userGroupIds: string[] = [],
+		requireApproval = false,
+		note = ''
 	) => {
-		const res = await this.api.post(`/signup-tokens`, { ttl, usageLimit, userGroupIds });
+		const res = await this.api.post(`/signup-tokens`, {
+			ttl,
+			usageLimit,
+			userGroupIds,
+			requireApproval,
+			note
+		});
 		return res.data.token;
+	};
+
+	getInviteStatus = async (token: string) => {
+		const res = await this.api.get(`/signup/invites/${token}`);
+		return res.data as InviteStatus;
+	};
+
+	approve = async (id: string) => {
+		const res = await this.api.post(`/users/${id}/approve`);
+		return res.data as User;
 	};
 
 	exchangeOneTimeAccessToken = async (token: string) => {

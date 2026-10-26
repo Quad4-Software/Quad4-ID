@@ -30,6 +30,7 @@ const (
 	CodeInvalidWebAuthnSession          Code = "invalid_webauthn_session"
 	CodeUserNotFound                    Code = "user_not_found"
 	CodeUserDisabled                    Code = "user_disabled"
+	CodeUserPendingApproval             Code = "user_pending_approval"
 	CodeAPIKeyNotFound                  Code = "api_key_not_found"
 	CodeInvalidAPIKey                   Code = "invalid_api_key"
 	CodeDeviceLoginExpired              Code = "device_login_expired"

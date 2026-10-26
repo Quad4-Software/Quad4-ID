@@ -54,6 +54,7 @@ func newService(deps Dependencies, actorService *actor.Service) *Service {
 
 func (s *Service) SignUp(ctx context.Context, config *appconfig.AppConfigModel, signupData signUpDto, ipAddress, userAgent string) (model.User, string, error) {
 	tokenProvided := signupData.Token != ""
+	requireApproval := false
 
 	if config.AllowUserSignups.String() != "open" && !tokenProvided {
 		return model.User{}, "", apperror.OpenSignupDisabled()
@@ -78,6 +79,7 @@ func (s *Service) SignUp(ctx context.Context, config *appconfig.AppConfigModel, 
 			return model.User{}, "", apperror.TokenInvalidOrExpired()
 		}
 		userGroupIDs = consumeRes.UserGroupIDs
+		requireApproval = consumeRes.RequireApproval
 	}
 
 	userToCreate := dto.UserCreateDto{
@@ -92,7 +94,7 @@ func (s *Service) SignUp(ctx context.Context, config *appconfig.AppConfigModel, 
 
 	// The token has now been consumed
 	// From this point on, if we hit an error we compensate by releasing the token (best-effort)
-	user, accessToken, err := s.createSignedUpUser(ctx, config, userToCreate, signupData.Token, tokenProvided, ipAddress, userAgent)
+	user, accessToken, err := s.createSignedUpUser(ctx, config, userToCreate, signupData.Token, tokenProvided, requireApproval, ipAddress, userAgent)
 	if err != nil {
 		if tokenProvided {
 			s.releaseSignupToken(ctx, signupData.Token)
@@ -112,7 +114,7 @@ func (s *Service) SignUp(ctx context.Context, config *appconfig.AppConfigModel, 
 
 // createSignedUpUser creates the user and issues an access token within a single transaction.
 // It performs no actor calls, so it's safe to keep the transaction open for its whole duration.
-func (s *Service) createSignedUpUser(ctx context.Context, config *appconfig.AppConfigModel, userToCreate dto.UserCreateDto, token string, tokenProvided bool, ipAddress, userAgent string) (model.User, string, error) {
+func (s *Service) createSignedUpUser(ctx context.Context, config *appconfig.AppConfigModel, userToCreate dto.UserCreateDto, token string, tokenProvided bool, requireApproval bool, ipAddress, userAgent string) (model.User, string, error) {
 	tx := s.db.Begin()
 	defer func() {
 		tx.Rollback()
@@ -133,15 +135,29 @@ func (s *Service) createSignedUpUser(ctx context.Context, config *appconfig.AppC
 		user.EmailVerificationDeadline = &deadline
 	}
 
+	// Invites that require approval put the account into the pending state, where sign-in is blocked until an admin approves it
+	if requireApproval {
+		err = tx.WithContext(ctx).Model(&user).Update("approval_pending", true).Error
+		if err != nil {
+			return model.User{}, "", err
+		}
+		user.ApprovalPending = true
+	}
+
 	accessToken, err := s.signer.GenerateAccessToken(user, "", config.SessionDuration.AsDurationMinutes())
 	if err != nil {
 		return model.User{}, "", err
 	}
 
 	if tokenProvided {
-		s.auditLog.Create(ctx, auditlogs.EventAccountCreated, ipAddress, userAgent, user.ID, auditlogs.Data{
-			"signupToken": token,
-		}, tx)
+		data := auditlogs.Data{
+			"signupToken":  token,
+			"approvalMode": "automatic",
+		}
+		if requireApproval {
+			data["approvalMode"] = "manual"
+		}
+		s.auditLog.Create(ctx, auditlogs.EventAccountCreated, ipAddress, userAgent, user.ID, data, tx)
 	} else {
 		s.auditLog.Create(ctx, auditlogs.EventAccountCreated, ipAddress, userAgent, user.ID, auditlogs.Data{
 			"method": "open_signup",
@@ -273,6 +289,21 @@ func (s *Service) ListSignupTokens(ctx context.Context, listRequestOptions utils
 	return paginateSignupTokens(tokens, listRequestOptions)
 }
 
+// GetSignupTokenStatus reports whether an invite token is still usable without consuming a use
+func (s *Service) GetSignupTokenStatus(ctx context.Context, token string) (signupTokenPeekResponse, error) {
+	res, err := s.actorService.Invoke(ctx, SignupTokenActorType, token, SignupTokenMethodPeek, nil)
+	if err != nil {
+		return signupTokenPeekResponse{}, fmt.Errorf("error invoking signup token actor: %w", err)
+	}
+
+	var peekRes signupTokenPeekResponse
+	if err := res.Decode(&peekRes); err != nil {
+		return signupTokenPeekResponse{}, fmt.Errorf("error decoding signup token actor response: %w", err)
+	}
+
+	return peekRes, nil
+}
+
 func (s *Service) DeleteSignupToken(ctx context.Context, tokenID string) error {
 	// Tokens are addressed by their value (the actor ID), while the API deletes them by ID, so we look up the matching token first
 	entries, err := s.listSignupTokenStates(ctx)
@@ -345,7 +376,7 @@ func (s *Service) listSignupTokenStates(ctx context.Context) ([]signupTokenEntry
 	return entries, nil
 }
 
-func (s *Service) CreateSignupToken(ctx context.Context, ttl time.Duration, usageLimit int, userGroupIDs []string) (SignupToken, error) {
+func (s *Service) CreateSignupToken(ctx context.Context, ttl time.Duration, usageLimit int, requireApproval bool, note string, userGroupIDs []string) (SignupToken, error) {
 	// Load the referenced user groups to validate them and to include them in the response
 	var userGroups []model.UserGroup
 	if len(userGroupIDs) > 0 {
@@ -371,12 +402,14 @@ func (s *Service) CreateSignupToken(ctx context.Context, ttl time.Duration, usag
 
 	now := time.Now().Round(time.Second)
 	state := SignupTokenState{
-		ID:           uuid.NewV4().String(),
-		ExpiresAt:    now.Add(ttl),
-		UsageLimit:   usageLimit,
-		UsageCount:   0,
-		UserGroupIDs: validGroupIDs,
-		CreatedAt:    now,
+		ID:              uuid.NewV4().String(),
+		ExpiresAt:       now.Add(ttl),
+		UsageLimit:      usageLimit,
+		UsageCount:      0,
+		UserGroupIDs:    validGroupIDs,
+		RequireApproval: requireApproval,
+		Note:            note,
+		CreatedAt:       now,
 	}
 
 	// The token's value is the actor's ID
@@ -446,11 +479,13 @@ func signupTokenModelFromState(token string, state SignupTokenState, groups []mo
 			ID:        state.ID,
 			CreatedAt: datatype.DateTime(state.CreatedAt),
 		},
-		Token:      token,
-		ExpiresAt:  datatype.DateTime(state.ExpiresAt),
-		UsageLimit: state.UsageLimit,
-		UsageCount: state.UsageCount,
-		UserGroups: groups,
+		Token:           token,
+		ExpiresAt:       datatype.DateTime(state.ExpiresAt),
+		UsageLimit:      state.UsageLimit,
+		UsageCount:      state.UsageCount,
+		RequireApproval: state.RequireApproval,
+		Note:            state.Note,
+		UserGroups:      groups,
 	}
 }
 

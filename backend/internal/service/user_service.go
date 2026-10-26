@@ -821,6 +821,33 @@ func (s *UserService) ResetProfilePicture(ctx context.Context, userID string) er
 	return nil
 }
 
+// ApproveUser clears a user's pending approval state so they can sign in
+// Approving a user who is not pending is a no-op
+func (s *UserService) ApproveUser(ctx context.Context, userID string) (model.User, error) {
+	user, err := s.getUserInternal(ctx, userID, s.db)
+	if err != nil {
+		return model.User{}, err
+	}
+
+	if user.ApprovalPending {
+		// Bump UpdatedAt so the SCIM sync pushes the now active user
+		user.ApprovalPending = false
+		err = s.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", user.ID).Updates(map[string]any{
+			"approval_pending": false,
+			"updated_at":       datatype.DateTime(time.Now()),
+		}).Error
+		if err != nil {
+			return model.User{}, err
+		}
+	}
+
+	if s.scimSyncScheduler != nil {
+		s.scimSyncScheduler.ScheduleSync(ctx)
+	}
+
+	return user, nil
+}
+
 // DisableUserInternal disables a user within an existing transaction
 // It's exported for the LDAP sync, which soft-deletes users that are no longer in the directory
 func (s *UserService) DisableUserInternal(ctx context.Context, tx *gorm.DB, userID string) error {

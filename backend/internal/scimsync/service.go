@@ -490,7 +490,7 @@ func (s *Service) syncUser(ctx context.Context, provider ServiceProvider, user m
 			FamilyName: user.LastName,
 		},
 		Display: user.DisplayName,
-		Active:  !user.Disabled,
+		Active:  !user.Disabled && !user.ApprovalPending,
 	}
 
 	if user.Email != nil {

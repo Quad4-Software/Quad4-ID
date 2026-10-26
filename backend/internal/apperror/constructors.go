@@ -236,6 +236,10 @@ func UserDisabled() *Error {
 	return New(CodeUserDisabled, http.StatusForbidden, "User account is disabled")
 }
 
+func UserPendingApproval() *Error {
+	return New(CodeUserPendingApproval, http.StatusForbidden, "User account is waiting for approval")
+}
+
 func ValidationMessage(message string) *Error {
 	return New(CodeValidationFailed, http.StatusBadRequest, message)
 }

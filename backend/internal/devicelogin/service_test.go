@@ -598,3 +598,23 @@ func (f *fakeAuditLogger) SendSignInNotification(_ context.Context, result audit
 	defer f.mu.Unlock()
 	f.notifications = append(f.notifications, result)
 }
+
+func TestRejectsPendingApprovalUserAtExchange(t *testing.T) {
+	db := testutils.NewDatabaseForTest(t)
+	fixture := newServiceFixture(t, db)
+
+	user := model.User{
+		Base:            model.Base{ID: "pending-device-login-user"},
+		Username:        "pending-device-login-user",
+		ApprovalPending: true,
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	request, deviceToken, err := fixture.service.Create(t.Context(), "", "requesting-agent")
+	require.NoError(t, err)
+	require.NoError(t, fixture.service.Decide(t.Context(), request.Code, "approve", user.ID, "fresh-proof"))
+
+	_, accessToken, _, err := fixture.service.Exchange(t.Context(), request.ID, deviceToken, "", "", "", testSessionDuration, appconfig.LoginNotificationDisabled)
+	require.True(t, apperror.IsCode(err, apperror.CodeUserPendingApproval))
+	require.Empty(t, accessToken)
+}

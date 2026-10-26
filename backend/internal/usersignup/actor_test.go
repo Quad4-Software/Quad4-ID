@@ -171,3 +171,65 @@ func TestSignupTokenActorMigrateDoesNotOverwrite(t *testing.T) {
 	require.Equal(t, signupTokenConsumeOK, consumeSignupTokenForTest(t, svc, "token-4").Status)
 	require.Equal(t, signupTokenConsumeLimitReached, consumeSignupTokenForTest(t, svc, "token-4").Status)
 }
+
+func TestSignupTokenActorPeek(t *testing.T) {
+	svc := newSignupTokenActorService(t)
+
+	createSignupTokenForTest(t, svc, "peek-token", SignupTokenState{
+		ID:              "id-peek",
+		ExpiresAt:       time.Now().Add(time.Hour),
+		UsageLimit:      2,
+		RequireApproval: true,
+		Note:            "for sam",
+		CreatedAt:       time.Now(),
+	})
+
+	peek := func(token string) signupTokenPeekResponse {
+		t.Helper()
+		res, err := svc.Invoke(t.Context(), SignupTokenActorType, token, SignupTokenMethodPeek, nil)
+		require.NoError(t, err)
+		var out signupTokenPeekResponse
+		require.NoError(t, res.Decode(&out))
+		return out
+	}
+
+	// Peeking does not consume a use and reports approval mode and expiry
+	res := peek("peek-token")
+	require.Equal(t, signupTokenConsumeOK, res.Status)
+	require.True(t, res.RequireApproval)
+	require.False(t, res.ExpiresAt.IsZero())
+
+	consume := consumeSignupTokenForTest(t, svc, "peek-token")
+	require.Equal(t, signupTokenConsumeOK, consume.Status)
+	require.True(t, consume.RequireApproval)
+
+	res = peek("peek-token")
+	require.Equal(t, signupTokenConsumeOK, res.Status)
+
+	consume = consumeSignupTokenForTest(t, svc, "peek-token")
+	require.Equal(t, signupTokenConsumeOK, consume.Status)
+
+	// The usage limit is now reached, so peek reports it instead of consuming
+	res = peek("peek-token")
+	require.Equal(t, signupTokenConsumeLimitReached, res.Status)
+
+	// Unknown tokens report not_found
+	res = peek("missing-token")
+	require.Equal(t, signupTokenConsumeNotFound, res.Status)
+}
+
+func TestSignupTokenStateDecodesOldRecords(t *testing.T) {
+	svc := newSignupTokenActorService(t)
+
+	// States written before invites existed have no approval or note fields
+	createSignupTokenForTest(t, svc, "old-token", SignupTokenState{
+		ID:         "id-old",
+		ExpiresAt:  time.Now().Add(time.Hour),
+		UsageLimit: 1,
+		CreatedAt:  time.Now(),
+	})
+
+	res := consumeSignupTokenForTest(t, svc, "old-token")
+	require.Equal(t, signupTokenConsumeOK, res.Status)
+	require.False(t, res.RequireApproval)
+}

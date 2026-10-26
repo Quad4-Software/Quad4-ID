@@ -835,3 +835,17 @@ func queryValues(requests []mockSCIMRequest, method, path, key string) []string 
 	}
 	return values
 }
+
+func TestSyncMarksPendingApprovalUserInactive(t *testing.T) {
+	fixture := newSCIMSyncFixture(t, false)
+	user := fixture.createUser(t, "user-pending", "pending", nil, false)
+	require.NoError(t, fixture.db.Model(&user).Update("approval_pending", true).Error)
+	user.ApprovalPending = true
+
+	require.NoError(t, fixture.service.SyncServiceProvider(t.Context(), fixture.provider.ID))
+
+	users := fixture.transport.usersSnapshot()
+	remote := resourceByExternalID(user.ID, users)
+	require.NotNil(t, remote)
+	assert.False(t, remote.Active)
+}

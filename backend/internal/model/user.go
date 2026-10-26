@@ -24,6 +24,7 @@ type User struct {
 	Locale                    *string
 	LdapID                    *string
 	Disabled                  bool `sortable:"true" filterable:"true"`
+	ApprovalPending           bool `sortable:"true" filterable:"true"`
 	UpdatedAt                 *datatype.DateTime
 
 	CustomClaims []CustomClaim

@@ -9,6 +9,9 @@ export function getAuthRedirectPath(url: URL, user: User | null, appConfig: AppC
 	const isSignedIn = !!user;
 	const isAdmin = user?.isAdmin;
 
+	const isPendingApprovalAllowedPath =
+		path == '/signup/pending' || path == '/signup/add-passkey' || path == '/logout';
+
 	const isUnauthenticatedOnlyPath =
 		path == '/login' ||
 		(path.startsWith('/login/') && path != '/login/alternative/code') ||
@@ -43,6 +46,11 @@ export function getAuthRedirectPath(url: URL, user: User | null, appConfig: AppC
 
 	if (isAdminPath && !isAdmin) {
 		return '/settings';
+	}
+
+	// A user waiting for admin approval can only reach the waiting page, the passkey step and logout
+	if (user?.approvalPending && !isPendingApprovalAllowedPath) {
+		return '/signup/pending';
 	}
 
 	// A user who still has to verify their email can only reach their account settings until they do

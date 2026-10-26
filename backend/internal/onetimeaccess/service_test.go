@@ -223,3 +223,30 @@ func (f *fakeAuditLogger) CreateSignIn(ctx context.Context, event auditlogs.Even
 func (f *fakeAuditLogger) SendSignInNotification(_ context.Context, result auditlogs.SignInResult) {
 	f.notifications = append(f.notifications, result)
 }
+
+func TestExchangeTokenRejectsPendingApprovalUser(t *testing.T) {
+	db := testutils.NewDatabaseForTest(t)
+	svc, host, _ := newServiceForTest(t, db)
+
+	user := model.User{
+		Base:            model.Base{ID: "pending-user"},
+		Username:        "pending-user",
+		ApprovalPending: true,
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	token, _, err := StoreToken(t.Context(), svc.actorService, user.ID, time.Minute, false)
+	require.NoError(t, err)
+
+	dbConfig := appconfig.NewTestConfig(nil)
+	exchangedUser, accessToken, err := svc.ExchangeToken(t.Context(), dbConfig, token, "", "", "", "")
+
+	require.True(t, apperror.IsCode(err, apperror.CodeUserPendingApproval))
+	require.Empty(t, exchangedUser.ID)
+	require.Empty(t, accessToken)
+
+	// The token must have been restored (not consumed), since the exchange failed because the user is pending approval
+	var state TokenState
+	err = host.GetState(t.Context(), TokenActorType, token, &state)
+	require.NoError(t, err)
+}

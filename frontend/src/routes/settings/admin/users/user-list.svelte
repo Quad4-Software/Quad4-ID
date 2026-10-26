@@ -20,6 +20,12 @@
 	import { toast } from 'svelte-sonner';
 	import { deleteUserAction, loginCodeAction } from './user-actions';
 
+	let {
+		onChange
+	}: {
+		onChange?: () => unknown;
+	} = $props();
+
 	let userIdToCreateOneTimeLink: string | null = $state(null);
 	let tableRef: AdvancedTable<User>;
 
@@ -27,6 +33,16 @@
 
 	export function refresh() {
 		return tableRef?.refresh();
+	}
+
+	async function approveUser(user: User) {
+		try {
+			await userService.approve(user.id);
+			toast.success(m.user_approved());
+			await onChange?.();
+		} catch (e) {
+			axiosErrorToast(e);
+		}
 	}
 
 	async function enableUser(user: User) {
@@ -109,6 +125,12 @@
 	];
 
 	const actions: CreateAdvancedTableActions<User> = (u) => [
+		{
+			label: m.approve(),
+			icon: LucideUserCheck,
+			onClick: (u) => approveUser(u),
+			hidden: !u.approvalPending
+		},
 		loginCodeAction((u) => (userIdToCreateOneTimeLink = u.id)),
 		{
 			label: m.edit(),
@@ -134,8 +156,11 @@
 {/snippet}
 
 {#snippet StatusCell({ item }: { item: User })}
-	<Badge class="rounded-full" variant={item.disabled ? 'destructive' : 'default'}>
-		{item.disabled ? m.disabled() : m.enabled()}
+	<Badge
+		class="rounded-full"
+		variant={item.disabled ? 'destructive' : item.approvalPending ? 'secondary' : 'default'}
+	>
+		{item.disabled ? m.disabled() : item.approvalPending ? m.pending() : m.enabled()}
 	</Badge>
 {/snippet}
 

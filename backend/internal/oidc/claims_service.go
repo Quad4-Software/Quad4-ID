@@ -78,6 +78,9 @@ func (s *ClaimsService) ValidateUserAccess(ctx context.Context, userID string, c
 	if user.Disabled {
 		return fosite.ErrInvalidGrant.WithHint("The user account is disabled.")
 	}
+	if user.ApprovalPending {
+		return fosite.ErrInvalidGrant.WithHint("The user account is waiting for approval.")
+	}
 
 	// The authorization middleware already stops these users at the authorize step, but grants issued before the email became unverified, such as refresh tokens, are only checked here
 	pending, err := s.isEmailVerificationPending(ctx, &user)

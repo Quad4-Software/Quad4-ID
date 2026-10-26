@@ -108,6 +108,7 @@ func (m *Module) RegisterRoutes(r *authz.Router, signupRateLimit gin.HandlerFunc
 	r.GET("/signup-tokens", authz.UsersRead, httpserver.Handle(m.handler.listSignupTokens))
 	r.DELETE("/signup-tokens/:id", authz.UsersWrite, httpserver.Handle(m.handler.deleteSignupToken))
 	r.Public().POST("/signup", signupRateLimit, httpserver.Handle(m.handler.signup))
+	r.Public().GET("/signup/invites/:token", signupRateLimit, httpserver.Handle(m.handler.getSignupTokenStatus))
 	r.Public().GET("/signup/setup", httpserver.Handle(m.handler.checkInitialAdminSetupAvailable))
 	r.Public().POST("/signup/setup", httpserver.Handle(m.handler.signUpInitialAdmin))
 }

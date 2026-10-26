@@ -6,6 +6,7 @@
 	import UserService from '#lib/services/user-service.ts';
 	import appConfigStore from '#lib/stores/application-configuration-store.ts';
 	import userStore from '#lib/stores/user-store.ts';
+	import type { InviteStatus } from '#lib/types/signup-token.type.ts';
 	import type { UserSignUp } from '#lib/types/user.type.ts';
 	import { getAxiosErrorMessage } from '#lib/utils/error-util.ts';
 	import { tryCatch } from '#lib/utils/try-catch-util.ts';
@@ -19,6 +20,8 @@
 	const userService = new UserService();
 
 	let error: string | undefined = $state();
+	let invite: InviteStatus | null = $state(null);
+	let inviteChecked = $state(false);
 
 	async function handleSignup(userData: UserSignUp) {
 		const result = await tryCatch(userService.signup({ ...userData, token: data.token }));
@@ -30,11 +33,12 @@
 
 		await userStore.setUser(result.data);
 
-		goto('/');
+		// A user waiting for approval goes straight to the waiting page instead of the home redirect
+		goto(result.data.approvalPending ? '/signup/pending' : '/');
 		return true;
 	}
 
-	onMount(() => {
+	onMount(async () => {
 		if (!$appConfigStore.allowUserSignups || $appConfigStore.allowUserSignups === 'disabled') {
 			error = m.user_signups_are_disabled();
 			return;
@@ -43,7 +47,18 @@
 		// For token-based signups, check if we have a valid token
 		if ($appConfigStore.allowUserSignups === 'withToken' && !data.token) {
 			error = m.signup_requires_valid_token();
+			return;
 		}
+
+		if (data.token) {
+			const result = await tryCatch(userService.getInviteStatus(data.token));
+			if (result.error || !result.data.valid) {
+				error = m.invite_expired_or_used();
+			} else {
+				invite = result.data;
+			}
+		}
+		inviteChecked = true;
 	});
 </script>
 
@@ -56,20 +71,36 @@
 		<LoginLogoErrorSuccessIndicator error={!!error} />
 	</div>
 
-	<h1 class="font-gloock mt-5 text-3xl font-bold sm:text-4xl">
-		{m.signup_to_appname({ appName: $appConfigStore.appName })}
-	</h1>
+	{#if data.token && invite}
+		<h1 class="font-gloock mt-5 text-3xl font-bold sm:text-4xl">
+			{m.you_are_invited_to_appname({ appName: $appConfigStore.appName })}
+		</h1>
+	{:else}
+		<h1 class="font-gloock mt-5 text-3xl font-bold sm:text-4xl">
+			{m.signup_to_appname({ appName: $appConfigStore.appName })}
+		</h1>
+	{/if}
 
-	{#if !error}
+	{#if error}
 		<p class="text-muted-foreground mt-2" in:fade>
-			{m.create_your_account_to_get_started()}
+			{error}
+		</p>
+		<Button class="mt-10" href="/login">{m.go_to_login()}</Button>
+	{:else if !inviteChecked}
+		<p class="text-muted-foreground mt-2" in:fade>
+			{m.checking_your_invite()}
 		</p>
 	{:else}
 		<p class="text-muted-foreground mt-2" in:fade>
-			{error}.
+			{#if invite}
+				{m.you_sign_in_with_passkey()}
+				{#if invite.requireApproval}
+					{m.admin_reviews_before_signin()}
+				{/if}
+			{:else}
+				{m.create_your_account_to_get_started()}
+			{/if}
 		</p>
-	{/if}
-	{#if $appConfigStore.allowUserSignups === 'open' || data.token}
 		<SignupForm callback={handleSignup} />
 		<div class="mt-10 flex w-full items-center justify-between gap-2">
 			<a class="text-muted-foreground mt-5 flex text-sm" href="/login"
@@ -79,7 +110,5 @@
 				>{m.signup()}</Button
 			>
 		</div>
-	{:else}
-		<Button class="mt-10" href="/login">{m.go_to_login()}</Button>
 	{/if}
 </SignInWrapper>

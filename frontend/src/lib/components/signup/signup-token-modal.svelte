@@ -7,15 +7,20 @@
 	import { Button } from '#lib/components/ui/button/index.ts';
 	import * as Dialog from '#lib/components/ui/dialog/index.ts';
 	import { Input } from '#lib/components/ui/input/index.ts';
+	import { Label } from '#lib/components/ui/label/index.ts';
+	import * as RadioGroup from '#lib/components/ui/radio-group/index.ts';
 	import * as Select from '#lib/components/ui/select/index.js';
 	import { m } from '#lib/paraglide/messages.js';
 	import AppConfigService from '#lib/services/app-config-service.ts';
 	import UserService from '#lib/services/user-service.ts';
+	import appConfigStore from '#lib/stores/application-configuration-store.ts';
 	import { axiosErrorToast } from '#lib/utils/error-util.ts';
 	import { preventDefault } from '#lib/utils/event-util.ts';
 	import { createForm } from '#lib/utils/form-util.ts';
+	import { get } from 'svelte/store';
 	import { mode } from 'mode-watcher';
 	import { onMount } from 'svelte';
+	import { toast } from 'svelte-sonner';
 	import { z } from 'zod/v4';
 
 	let {
@@ -27,42 +32,45 @@
 	const userService = new UserService();
 	const appConfigService = new AppConfigService();
 
-	const DEFAULT_TTL_SECONDS = 60 * 60 * 24;
+	const DEFAULT_TTL_SECONDS = 60 * 60 * 24 * 7;
 	const availableExpirations = [
 		{ label: m.one_hour(), value: 60 * 60 },
-		{ label: m.twelve_hours(), value: 60 * 60 * 12 },
-		{ label: m.one_day(), value: DEFAULT_TTL_SECONDS },
-		{ label: m.one_week(), value: DEFAULT_TTL_SECONDS * 7 },
-		{ label: m.one_month(), value: DEFAULT_TTL_SECONDS * 30 }
+		{ label: m.one_day(), value: 60 * 60 * 24 },
+		{ label: m.one_week(), value: DEFAULT_TTL_SECONDS },
+		{ label: m.thirty_days(), value: 60 * 60 * 24 * 30 }
 	] as const;
 
-	const defaultExpiration =
-		availableExpirations.find((exp) => exp.value === DEFAULT_TTL_SECONDS)?.value ??
-		availableExpirations[0].value;
-
 	type SignupTokenForm = {
-		ttl: number;
+		note: string;
+		multiUse: string;
 		usageLimit: number;
+		ttl: number;
+		approval: string;
 		userGroupIds: string[];
 	};
 
 	const initialFormValues: SignupTokenForm = {
-		ttl: defaultExpiration,
-		usageLimit: 1,
+		note: '',
+		multiUse: 'single',
+		usageLimit: 5,
+		ttl: DEFAULT_TTL_SECONDS,
+		approval: 'automatic',
 		userGroupIds: []
 	};
 
 	const formSchema = z.object({
+		note: z.string().max(100),
+		multiUse: z.string(),
+		usageLimit: z.number().min(2).max(100),
 		ttl: z.number(),
-		usageLimit: z.number().min(1).max(100),
+		approval: z.string(),
 		userGroupIds: z.array(z.string()).default([])
 	});
 
 	const { inputs, ...form } = createForm<typeof formSchema>(formSchema, initialFormValues);
 
-	let signupToken: string | null = $state(null);
-	let signupLink: string | null = $state(null);
-	let createdSignupData: SignupTokenForm | null = $state(null);
+	let inviteLink: string | null = $state(null);
+	let showAdvanced = $state(false);
 	let isLoading = $state(false);
 
 	let defaultUserGroupIds: string[] = [];
@@ -76,19 +84,21 @@
 		form.setValue('userGroupIds', defaultUserGroupIds);
 	}
 
-	async function createSignupToken() {
+	async function createInvite() {
 		const data = form.validate();
 		if (!data) return;
 
 		isLoading = true;
 		try {
-			signupToken = await userService.createSignupToken(
+			const usageLimit = data.multiUse === 'multi' ? data.usageLimit : 1;
+			const token = await userService.createSignupToken(
 				data.ttl,
-				data.usageLimit,
-				data.userGroupIds
+				usageLimit,
+				data.userGroupIds,
+				data.approval === 'manual',
+				data.note.trim()
 			);
-			signupLink = `${page.url.origin}/st/${signupToken}`;
-			createdSignupData = data;
+			inviteLink = `${page.url.origin}/st/${token}`;
 		} catch (e) {
 			axiosErrorToast(e);
 		} finally {
@@ -96,12 +106,40 @@
 		}
 	}
 
+	async function shareInvite() {
+		if (!inviteLink) return;
+		try {
+			await navigator.share({
+				title: get(appConfigStore).appName,
+				text: inviteMessage(),
+				url: inviteLink
+			});
+		} catch {
+			// Sharing was canceled or failed silently
+		}
+	}
+
+	function inviteMessage() {
+		return m.you_are_invited_to_join_appname_open_link({
+			appName: get(appConfigStore).appName,
+			link: inviteLink ?? ''
+		});
+	}
+
+	async function copyInviteMessage() {
+		try {
+			await navigator.clipboard.writeText(inviteMessage());
+			toast.success(m.copied());
+		} catch (e) {
+			axiosErrorToast(e);
+		}
+	}
+
 	function onOpenChange(isOpen: boolean) {
 		open = isOpen;
 		if (!isOpen) {
-			signupToken = null;
-			signupLink = null;
-			createdSignupData = null;
+			inviteLink = null;
+			showAdvanced = false;
 			resetForm();
 		}
 	}
@@ -122,15 +160,61 @@
 <Dialog.Root {open} {onOpenChange}>
 	<Dialog.Content class="max-w-md">
 		<Dialog.Header>
-			<Dialog.Title>{m.signup_token()}</Dialog.Title>
-			<Dialog.Description
-				>{m.create_a_signup_token_to_allow_new_user_registration()}</Dialog.Description
-			>
+			<Dialog.Title>{m.invite_someone()}</Dialog.Title>
+			<Dialog.Description>{m.create_an_invite_to_let_someone_join()}</Dialog.Description>
 		</Dialog.Header>
 
-		{#if signupToken === null}
-			<form class="space-y-4" onsubmit={preventDefault(createSignupToken)}>
-				<FormInput labelFor="expiration" label={m.expiration()} input={$inputs.ttl}>
+		{#if inviteLink === null}
+			<form class="space-y-4" onsubmit={preventDefault(createInvite)}>
+				<FormInput
+					labelFor="invite-note"
+					label={m.who_is_it_for()}
+					description={m.invite_note_description()}
+					input={$inputs.note}
+				>
+					<Input
+						id="invite-note"
+						bind:value={$inputs.note.value}
+						aria-invalid={$inputs.note.error ? 'true' : undefined}
+						class="h-9"
+						placeholder={m.invite_note_placeholder()}
+					/>
+				</FormInput>
+
+				<FormInput label={m.how_many_people()} input={$inputs.multiUse}>
+					<RadioGroup.Root
+						value={$inputs.multiUse.value}
+						onValueChange={(v) => v && form.setValue('multiUse', v)}
+					>
+						<div class="flex items-center gap-2">
+							<RadioGroup.Item id="invite-single" value="single" />
+							<Label for="invite-single">{m.just_one_person()}</Label>
+						</div>
+						<div class="flex items-center gap-2">
+							<RadioGroup.Item id="invite-multi" value="multi" />
+							<Label for="invite-multi">{m.several_people()}</Label>
+						</div>
+					</RadioGroup.Root>
+				</FormInput>
+
+				{#if $inputs.multiUse.value === 'multi'}
+					<FormInput labelFor="usage-limit" label={m.number_of_people()} input={$inputs.usageLimit}>
+						<Input
+							id="usage-limit"
+							type="number"
+							min="2"
+							max="100"
+							bind:value={$inputs.usageLimit.value}
+							aria-invalid={$inputs.usageLimit.error ? 'true' : undefined}
+							class="h-9"
+						/>
+						{#if $inputs.usageLimit.error}
+							<p class="text-destructive mt-1 text-xs">{$inputs.usageLimit.error}</p>
+						{/if}
+					</FormInput>
+				{/if}
+
+				<FormInput labelFor="expiration" label={m.expires_in()} input={$inputs.ttl}>
 					<Select.Root
 						type="single"
 						value={$inputs.ttl.value.toString()}
@@ -147,32 +231,45 @@
 							{/each}
 						</Select.Content>
 					</Select.Root>
-					{#if $inputs.ttl.error}
-						<p class="text-destructive mt-1 text-xs">{$inputs.ttl.error}</p>
+				</FormInput>
+
+				<FormInput label={m.approval()} input={$inputs.approval}>
+					<RadioGroup.Root
+						value={$inputs.approval.value}
+						onValueChange={(v) => v && form.setValue('approval', v)}
+					>
+						<div class="flex items-center gap-2">
+							<RadioGroup.Item id="approval-auto" value="automatic" />
+							<Label for="approval-auto">{m.let_them_in_automatically()}</Label>
+						</div>
+						<div class="flex items-center gap-2">
+							<RadioGroup.Item id="approval-manual" value="manual" />
+							<Label for="approval-manual">{m.i_approve_each_person_first()}</Label>
+						</div>
+					</RadioGroup.Root>
+				</FormInput>
+
+				<div>
+					<button
+						type="button"
+						class="text-muted-foreground text-sm underline-offset-2 hover:underline"
+						onclick={() => (showAdvanced = !showAdvanced)}
+					>
+						{m.advanced()}
+					</button>
+					{#if showAdvanced}
+						<div class="mt-3">
+							<FormInput
+								labelFor="default-groups"
+								label={m.user_groups()}
+								description={m.signup_token_user_groups_description()}
+								input={$inputs.userGroupIds}
+							>
+								<UserGroupInput bind:selectedGroupIds={$inputs.userGroupIds.value} />
+							</FormInput>
+						</div>
 					{/if}
-				</FormInput>
-				<FormInput
-					labelFor="usage-limit"
-					label={m.usage_limit()}
-					description={m.number_of_times_token_can_be_used()}
-					input={$inputs.usageLimit}
-				>
-					<Input
-						id="usage-limit"
-						type="number"
-						bind:value={$inputs.usageLimit.value}
-						aria-invalid={$inputs.usageLimit.error ? 'true' : undefined}
-						class="h-9"
-					/>
-				</FormInput>
-				<FormInput
-					labelFor="default-groups"
-					label={m.user_groups()}
-					description={m.signup_token_user_groups_description()}
-					input={$inputs.userGroupIds}
-				>
-					<UserGroupInput bind:selectedGroupIds={$inputs.userGroupIds.value} />
-				</FormInput>
+				</div>
 
 				<Dialog.Footer class="mt-4">
 					<Button type="submit" {isLoading}>
@@ -184,19 +281,22 @@
 			<div class="flex flex-col items-center gap-2">
 				<Qrcode
 					class="mb-2"
-					value={signupLink}
+					value={inviteLink}
 					size={180}
 					color={mode.current === 'dark' ? '#FFFFFF' : '#000000'}
 				/>
-				<CopyToClipboard value={signupLink!}>
-					<p data-testId="signup-token-link" class="px-2 text-center text-sm break-all">
-						{signupLink!}
+				<CopyToClipboard value={inviteLink}>
+					<p data-testid="invite-link" class="px-2 text-center text-sm break-all">
+						{inviteLink}
 					</p>
 				</CopyToClipboard>
-
-				<div class="text-muted-foreground mt-2 text-center text-sm">
-					<p>{m.usage_limit()}: {createdSignupData?.usageLimit}</p>
-					<p>{m.expiration()}: {getExpirationLabel(createdSignupData?.ttl ?? 0)}</p>
+				<div class="mt-2 flex w-full gap-2">
+					{#if typeof navigator !== 'undefined' && 'share' in navigator}
+						<Button variant="secondary" class="flex-1" onclick={shareInvite}>{m.share()}</Button>
+					{/if}
+					<Button variant="secondary" class="flex-1" onclick={copyInviteMessage}>
+						{m.copy_message()}
+					</Button>
 				</div>
 			</div>
 		{/if}

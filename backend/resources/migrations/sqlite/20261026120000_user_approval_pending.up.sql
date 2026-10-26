@@ -1,0 +1,6 @@
+PRAGMA foreign_keys=OFF;
+BEGIN;
+ALTER TABLE users
+ADD COLUMN approval_pending BOOLEAN DEFAULT FALSE NOT NULL;
+COMMIT;
+PRAGMA foreign_keys=ON;

@@ -312,6 +312,9 @@ func (s *Service) VerifyLogin(ctx context.Context, dbConfig *appconfig.AppConfig
 	if user.Disabled {
 		return model.User{}, model.LoginTokens{}, apperror.UserDisabled()
 	}
+	if user.ApprovalPending {
+		return model.User{}, model.LoginTokens{}, apperror.UserPendingApproval()
+	}
 
 	token, err := s.signer.GenerateAccessToken(*user, authenticationMethodPhishingResistant, dbConfig.SessionDuration.AsDurationMinutes())
 	if err != nil {

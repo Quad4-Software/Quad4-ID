@@ -90,6 +90,10 @@ func (m *Middleware) require(scope Scope, optional bool) gin.HandlerFunc {
 				_ = c.Error(apperror.EmailVerificationRequired())
 				return
 			}
+			if principal.WithheldUntilApproved.Has(scope) {
+				_ = c.Error(apperror.UserPendingApproval())
+				return
+			}
 			_ = c.Error(apperror.MissingScope(string(scope)))
 			return
 		}

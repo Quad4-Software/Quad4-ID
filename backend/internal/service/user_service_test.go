@@ -17,6 +17,7 @@ import (
 	"github.com/pocket-id/pocket-id/backend/internal/model"
 	datatype "github.com/pocket-id/pocket-id/backend/internal/model/types"
 	"github.com/pocket-id/pocket-id/backend/internal/storage"
+	"github.com/pocket-id/pocket-id/backend/internal/utils"
 	testutils "github.com/pocket-id/pocket-id/backend/internal/utils/testing"
 )
 
@@ -377,4 +378,45 @@ func TestMarkingEmailVerifiedClearsSignupDeadline(t *testing.T) {
 	stored, err := userService.GetUser(t.Context(), user.ID)
 	require.NoError(t, err)
 	require.Nil(t, stored.EmailVerificationDeadline)
+}
+
+func TestApproveUserClearsPendingApproval(t *testing.T) {
+	db := testutils.NewDatabaseForTest(t)
+	svc := NewUserService(db, nil, nil, nil, nil, nil, nil, nil)
+
+	pending := model.User{Username: "pending-approval-user", ApprovalPending: true}
+	require.NoError(t, db.Create(&pending).Error)
+
+	user, err := svc.ApproveUser(t.Context(), pending.ID)
+	require.NoError(t, err)
+	require.False(t, user.ApprovalPending)
+
+	var stored model.User
+	require.NoError(t, db.First(&stored, "id = ?", pending.ID).Error)
+	require.False(t, stored.ApprovalPending)
+
+	// Approving again is a no-op
+	user, err = svc.ApproveUser(t.Context(), pending.ID)
+	require.NoError(t, err)
+	require.False(t, user.ApprovalPending)
+
+	// Unknown users produce the standard not-found error
+	_, err = svc.ApproveUser(t.Context(), "no-such-user")
+	require.True(t, apperror.IsCode(err, apperror.CodeUserNotFound))
+}
+
+func TestListUsersFiltersByApprovalPending(t *testing.T) {
+	db := testutils.NewDatabaseForTest(t)
+	svc := NewUserService(db, nil, nil, nil, nil, nil, nil, nil)
+
+	require.NoError(t, db.Create(&model.User{Username: "active-user"}).Error)
+	require.NoError(t, db.Create(&model.User{Username: "pending-user", ApprovalPending: true}).Error)
+
+	users, pagination, err := svc.ListUsers(t.Context(), "", utils.ListRequestOptions{
+		Filters: map[string][]any{"approvalPending": {true}},
+	})
+	require.NoError(t, err)
+	require.Equal(t, int64(1), pagination.TotalItems)
+	require.Len(t, users, 1)
+	require.Equal(t, "pending-user", users[0].Username)
 }

@@ -32,6 +32,8 @@ const (
 	signupTokenMethodMigrate = "migrate"
 	signupTokenMethodConsume = "consume"
 	signupTokenMethodRelease = "release"
+	// SignupTokenMethodPeek reads a token's status without consuming a use
+	SignupTokenMethodPeek = "peek"
 )
 
 // signupTokenConsumeStatus is the outcome of a "consume" invocation.
@@ -49,12 +51,14 @@ const (
 // SignupTokenState is the persisted state of a signup token actor.
 // The token value itself is the actor's ID, so it isn't repeated here.
 type SignupTokenState struct {
-	ID           string
-	UsageLimit   int
-	UsageCount   int
-	UserGroupIDs []string
-	CreatedAt    time.Time
-	ExpiresAt    time.Time
+	ID              string
+	UsageLimit      int
+	UsageCount      int
+	UserGroupIDs    []string
+	RequireApproval bool
+	Note            string
+	CreatedAt       time.Time
+	ExpiresAt       time.Time
 }
 
 // signupTokenConsumeResponse is the response of the "consume" method
@@ -62,6 +66,15 @@ type signupTokenConsumeResponse struct {
 	Status signupTokenConsumeStatus
 	// UserGroupIDs is set only when Status is "ok", and contains the groups the new user should join
 	UserGroupIDs []string
+	// RequireApproval is set only when Status is "ok", and puts the new user into the pending approval state
+	RequireApproval bool
+}
+
+// signupTokenPeekResponse is the response of the "peek" method, which reports a token's status without consuming a use
+type signupTokenPeekResponse struct {
+	Status          signupTokenConsumeStatus
+	RequireApproval bool
+	ExpiresAt       time.Time
 }
 
 // signupTokenActor is the actor that manages a single signup token
@@ -93,6 +106,8 @@ func (a *signupTokenActor) Invoke(parentCtx context.Context, method string, data
 		return a.consume(parentCtx)
 	case signupTokenMethodRelease:
 		return nil, a.release(parentCtx)
+	case SignupTokenMethodPeek:
+		return a.peek(parentCtx)
 	case SignupTokenMethodDelete:
 		return nil, a.delete(parentCtx)
 	default:
@@ -160,8 +175,38 @@ func (a *signupTokenActor) consume(parentCtx context.Context) (signupTokenConsum
 	}
 
 	return signupTokenConsumeResponse{
-		Status:       signupTokenConsumeOK,
-		UserGroupIDs: state.UserGroupIDs,
+		Status:          signupTokenConsumeOK,
+		UserGroupIDs:    state.UserGroupIDs,
+		RequireApproval: state.RequireApproval,
+	}, nil
+}
+
+// peek reports the token's status without consuming a use
+func (a *signupTokenActor) peek(parentCtx context.Context) (signupTokenPeekResponse, error) {
+	ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
+	defer cancel()
+	state, err := a.client.GetState(ctx)
+	if err != nil {
+		return signupTokenPeekResponse{}, fmt.Errorf("error retrieving actor state: %w", err)
+	}
+
+	// An empty ID means there's no state: the token doesn't exist (or its state already expired and was purged)
+	if state.ID == "" || state.ExpiresAt.Before(time.Now()) {
+		return signupTokenPeekResponse{
+			Status: signupTokenConsumeNotFound,
+		}, nil
+	}
+
+	if state.UsageCount >= state.UsageLimit {
+		return signupTokenPeekResponse{
+			Status: signupTokenConsumeLimitReached,
+		}, nil
+	}
+
+	return signupTokenPeekResponse{
+		Status:          signupTokenConsumeOK,
+		RequireApproval: state.RequireApproval,
+		ExpiresAt:       state.ExpiresAt,
 	}, nil
 }
 

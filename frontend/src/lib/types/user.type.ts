@@ -16,6 +16,7 @@ export type User = {
 	locale?: Locale;
 	ldapId?: string;
 	disabled?: boolean;
+	approvalPending?: boolean;
 	emailVerificationDeadline?: string;
 };
 
@@ -33,7 +34,7 @@ export type AccountUpdate = Omit<UserCreate, 'isAdmin' | 'disabled' | 'emailVeri
 
 export type UserSignUp = Omit<
 	UserCreate,
-	'isAdmin' | 'disabled' | 'displayName' | 'emailVerified'
+	'isAdmin' | 'disabled' | 'displayName' | 'emailVerified' | 'approvalPending'
 > & {
 	token?: string;
 };

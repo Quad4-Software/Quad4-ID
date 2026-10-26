@@ -26,42 +26,149 @@ async function setSignupMode(
 	}
 }
 
-test.describe('Signup Token Creation', () => {
+test.describe('Invite Creation', () => {
 	test.beforeEach(async ({ page }) => {
 		await cleanupBackend();
 		await setSignupMode(page, 'Signup with token', false);
 	});
 
-	test('Create signup token', async ({ page }) => {
+	test('Create a multi-use invite', async ({ page }) => {
 		await page.goto('/settings/admin/users');
 
-		await page.getByRole('button', { name: 'Create options' }).click();
-		await page.getByRole('menuitem', { name: 'Create Signup Token' }).click();
-		await page.getByLabel('Expiration').click();
-		await page.getByRole('option', { name: 'week' }).click();
+		await page.getByRole('button', { name: 'Invite', exact: true }).click();
 
-		await page.getByLabel('Usage Limit').fill('8');
+		await page.getByLabel('Who is it for?').fill('Family');
+		await page.getByLabel('Several people').check();
+		await page.getByLabel('Number of people').fill('8');
+		await page.getByLabel('Expires in').click();
+		await page.getByRole('option', { name: '30 days' }).click();
+		await page.getByLabel('Let them in automatically').check();
 
+		// Groups live behind the collapsed Advanced section
+		await page.getByRole('button', { name: 'Advanced' }).click();
 		await page.getByLabel('User Groups').click();
 		await page.getByRole('option', { name: userGroups.developers.name }).click();
 		await page.getByRole('option', { name: userGroups.designers.name }).click();
 		await page.getByLabel('User Groups').click();
 
 		await page.getByRole('button', { name: 'Create', exact: true }).click();
+		await expect(page.getByTestId('invite-link')).toBeVisible();
+
+		const inviteLink = await page.getByTestId('invite-link').textContent();
+		expect(inviteLink).toContain('/st/');
+
 		await page.getByRole('button', { name: 'Close' }).click();
-
 		await page.getByRole('button', { name: 'Create options' }).click();
-		await page.getByRole('menuitem', { name: 'View Active Signup Tokens' }).click();
-		await page.getByLabel('Manage Signup Tokens').getByRole('button', { name: 'View' }).click();
-
-		await page.getByRole('menuitemcheckbox', { name: 'User Groups' }).click();
+		await page.getByRole('menuitem', { name: 'Manage invites' }).click();
 
 		const row = page.getByRole('row').last();
-		await expect(row.getByRole('cell', { name: '0 of 8' })).toBeVisible();
-		const dateInAWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US');
-		await expect(row.getByRole('cell', { name: dateInAWeek })).toBeVisible();
-		await expect(row.getByRole('cell', { name: userGroups.developers.name })).toBeVisible();
-		await expect(row.getByRole('cell', { name: userGroups.designers.name })).toBeVisible();
+		await expect(row.getByRole('cell', { name: 'Family' })).toBeVisible();
+		await expect(row.getByRole('cell', { name: '0 / 8' })).toBeVisible();
+		await expect(row.getByRole('cell', { name: 'Automatic' })).toBeVisible();
+	});
+
+	test('Signup through an automatic invite', async ({ page }) => {
+		await page.goto('/settings/admin/users');
+		await page.getByRole('button', { name: 'Invite', exact: true }).click();
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+		const inviteLink = await page.getByTestId('invite-link').textContent();
+		await page.context().clearCookies();
+
+		await page.goto(inviteLink!.trim());
+		await expect(page.getByText('You will sign in with your fingerprint')).toBeVisible();
+		await page.getByLabel('First name').fill('Auto');
+		await page.getByLabel('Last name').fill('Invitee');
+		await page.getByLabel('Username').fill('autoinvitee');
+		await page.getByLabel('Email').fill('auto.invitee@test.com');
+		await page.getByRole('button', { name: 'Sign Up' }).click();
+
+		await page.waitForURL('/signup/add-passkey');
+	});
+
+	test('Signup through a manual approval invite lands on the waiting page', async ({ page }) => {
+		await page.goto('/settings/admin/users');
+		await page.getByRole('button', { name: 'Invite', exact: true }).click();
+		await page.getByLabel('I approve each person first').check();
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+		const inviteLink = await page.getByTestId('invite-link').textContent();
+		await page.context().clearCookies();
+
+		await page.goto(inviteLink!.trim());
+		await expect(page.getByText('An admin will review your request')).toBeVisible();
+		await page.getByLabel('First name').fill('Manual');
+		await page.getByLabel('Last name').fill('Invitee');
+		await page.getByLabel('Username').fill('manualinvitee');
+		await page.getByLabel('Email').fill('manual.invitee@test.com');
+		await page.getByRole('button', { name: 'Sign Up' }).click();
+
+		// After signup the pending user is funneled to the waiting page
+		await page.waitForURL('/signup/pending', { timeout: 15000 });
+		await expect(page.getByText('You are almost in')).toBeVisible();
+	});
+
+	test('Admin approves a pending user who is then let in', async ({ page, browser }) => {
+		await page.goto('/settings/admin/users');
+		await page.getByRole('button', { name: 'Invite', exact: true }).click();
+		await page.getByLabel('I approve each person first').check();
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+		const inviteLink = await page.getByTestId('invite-link').textContent();
+
+		// The invitee signs up in a separate context and waits for approval
+		const inviteeContext = await browser.newContext();
+		const inviteePage = await inviteeContext.newPage();
+		await inviteePage.goto(inviteLink!.trim());
+		await inviteePage.getByLabel('First name').fill('Wait');
+		await inviteePage.getByLabel('Last name').fill('Ing');
+		await inviteePage.getByLabel('Username').fill('waitinguser');
+		await inviteePage.getByLabel('Email').fill('waiting.user@test.com');
+		await inviteePage.getByRole('button', { name: 'Sign Up' }).click();
+		await inviteePage.waitForURL('/signup/pending', { timeout: 15000 });
+
+		await expect(page.getByText('Waiting for approval')).toBeVisible();
+		await page.getByRole('button', { name: 'Approve' }).first().click();
+
+		// The pending page polls and forwards the invitee once approved
+		await inviteePage.waitForURL((url) => url.pathname !== '/signup/pending', {
+			timeout: 20000
+		});
+		await inviteeContext.close();
+	});
+
+	test('Invalid invite shows a friendly message', async ({ page }) => {
+		await page.context().clearCookies();
+		await page.goto('/st/not-a-real-invite');
+		await expect(page.getByText('This invite has expired or was already used')).toBeVisible();
+		await expect(page.getByLabel('First name')).not.toBeVisible();
+	});
+
+	test('Pending user cannot sign in with a passkey', async ({ page }) => {
+		await page.goto('/settings/admin/users');
+		await page.getByRole('button', { name: 'Invite', exact: true }).click();
+		await page.getByLabel('I approve each person first').check();
+		await page.getByRole('button', { name: 'Create', exact: true }).click();
+		const inviteLink = await page.getByTestId('invite-link').textContent();
+		await page.context().clearCookies();
+
+		await page.goto(inviteLink!.trim());
+		await page.getByLabel('First name').fill('Blocked');
+		await page.getByLabel('Last name').fill('User');
+		await page.getByLabel('Username').fill('blockeduser');
+		await page.getByLabel('Email').fill('blocked.user@test.com');
+		await page.getByRole('button', { name: 'Sign Up' }).click();
+		await page.waitForURL('/signup/pending', { timeout: 15000 });
+
+		// Register a passkey, then sign out and try to sign back in
+		const util = await passkeyUtil.init(page);
+		await util.addPasskey();
+		await page.goto('/signup/add-passkey');
+		await page.getByRole('button', { name: 'Add Passkey' }).click();
+		await page.waitForURL('/signup/pending');
+
+		await page.getByRole('button', { name: 'Sign out' }).click();
+		await page.waitForURL('/login');
+
+		await page.getByRole('button', { name: 'Authenticate' }).click();
+		await expect(page.getByText('Your account is waiting for approval')).toBeVisible();
 	});
 });
 
@@ -171,7 +278,7 @@ test.describe('User Signup', () => {
 			await page.goto('/signup');
 
 			await expect(
-				page.getByText('A valid signup token is required to create an account.')
+				page.getByText('You need a valid invite link to create an account')
 			).toBeVisible();
 		});
 

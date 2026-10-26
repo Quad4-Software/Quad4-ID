@@ -38,6 +38,12 @@ Copy `.env.example` to `.env` and set at least `APP_URL` and `ENCRYPTION_KEY`.
 
 The images use zstd-compressed layers, so pulling them requires Docker Engine 23 or newer, or any containerd 1.5+ based runtime.
 
+## Inviting people
+
+Admins can create invite links under Settings > Users > Invite. Each link can be single-use or
+multi-use, expires after a chosen time, and can either let people in automatically or hold them
+for manual approval. Pending accounts cannot sign in until approved.
+
 ## Build from source
 
 Requires Go and Node.js with pnpm (via Vite+ vp).

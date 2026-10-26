@@ -33,6 +33,7 @@ func NewUserController(r *authz.Router, fileSizeLimitMiddleware *middleware.File
 	r.GET("/users/:id", authz.UsersRead, httpserver.Handle(uc.getUserHandler))
 	r.POST("/users", authz.UsersWrite, httpserver.Handle(uc.createUserHandler))
 	r.PUT("/users/:id", authz.UsersWrite, httpserver.Handle(uc.updateUserHandler))
+	r.POST("/users/:id/approve", authz.UsersWrite, httpserver.Handle(uc.approveUserHandler))
 	r.GET("/users/:id/groups", authz.UsersRead, httpserver.Handle(uc.getUserGroupsHandler))
 	r.GET("/users/:id/webauthn-credentials", authz.UsersRead, httpserver.Handle(uc.listUserWebauthnCredentialsHandler))
 	r.PUT("/users/me", authz.AccountWrite, updateOwnAccountRateLimit, httpserver.Handle(uc.updateCurrentUserHandler))
@@ -180,6 +181,28 @@ func (uc *UserController) getCurrentUserHandler(c *gin.Context) error {
 
 	var userDto dto.UserDto
 	if err := dto.MapStruct(user, &userDto); err != nil {
+		return err
+	}
+
+	c.JSON(http.StatusOK, userDto)
+	return nil
+}
+
+// approveUserHandler godoc
+// @Summary Approve user
+// @Description Approve a user whose account is waiting for admin approval
+// @Tags Users
+// @Param id path string true "User ID"
+// @Success 200 {object} dto.UserDto
+// @Router /api/users/{id}/approve [post]
+func (uc *UserController) approveUserHandler(c *gin.Context) error {
+	user, err := uc.userService.ApproveUser(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		return err
+	}
+
+	var userDto dto.UserDto
+	if err = dto.MapStruct(user, &userDto); err != nil {
 		return err
 	}
 

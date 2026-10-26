@@ -17,6 +17,9 @@ type Principal struct {
 	// WithheldUntilVerified are the scopes the user's role grants but that are withheld until the user verifies their email
 	WithheldUntilVerified ScopeSet
 
+	// WithheldUntilApproved are the scopes withheld while the user's account waits for admin approval
+	WithheldUntilApproved ScopeSet
+
 	// AuthenticationMethod and AuthenticationTime describe how the session was established and are only set for KindSession
 	AuthenticationMethod string
 	AuthenticationTime   time.Time
@@ -35,6 +38,21 @@ func (p *Principal) RestrictUnverified() {
 	}
 	p.Scopes = kept
 	p.WithheldUntilVerified = withheld
+}
+
+// RestrictPending withholds every scope except those a user waiting for admin approval may still use, such as registering a passkey or signing out
+func (p *Principal) RestrictPending() {
+	kept := make(ScopeSet, len(unverifiedScopes))
+	withheld := make(ScopeSet, len(p.Scopes))
+	for scope := range p.Scopes {
+		if unverifiedScopes.Has(scope) {
+			kept[scope] = struct{}{}
+		} else {
+			withheld[scope] = struct{}{}
+		}
+	}
+	p.Scopes = kept
+	p.WithheldUntilApproved = withheld
 }
 
 // PrincipalFrom returns the principal the authorization middleware attached to the request
