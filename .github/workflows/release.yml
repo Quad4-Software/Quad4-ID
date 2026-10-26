@@ -107,6 +107,8 @@ jobs:
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: release-notes
+          # Kept outside the checkout because GoReleaser refuses to release from a dirty tree
+          path: ${{ runner.temp }}/release-notes
 
       - name: Setup Vite+
         uses: voidzero-dev/setup-vp@68f39c78aaf39be468cabd2afb09c162574c84af # v1.21.2
@@ -131,7 +133,7 @@ jobs:
         with:
           distribution: goreleaser
           version: "~> v2"
-          args: release --clean --release-notes=release-notes.md --parallelism=4
+          args: release --clean --release-notes=${{ runner.temp }}/release-notes/release-notes.md --parallelism=4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
