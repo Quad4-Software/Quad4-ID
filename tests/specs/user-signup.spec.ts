@@ -124,6 +124,8 @@ test.describe('Invite Creation', () => {
 		await inviteePage.getByRole('button', { name: 'Sign Up' }).click();
 		await inviteePage.waitForURL('/signup/pending', { timeout: 15000 });
 
+		// The pending list is loaded when the users page mounts, so reload to pick up the new account
+		await page.reload();
 		await expect(page.getByText('Waiting for approval')).toBeVisible();
 		await page.getByRole('button', { name: 'Approve' }).first().click();
 
@@ -262,14 +264,18 @@ test.describe('User Signup', () => {
 		test('Signup with token - invalid token shows error', async ({ page }) => {
 			await setSignupMode(page, 'Signup with token');
 
-			await page.goto('/st/invalid-token-123');
-			await page.getByLabel('First name').fill('Complete');
-			await page.getByLabel('Last name').fill('User');
-			await page.getByLabel('Username').fill('completeuser');
-			await page.getByLabel('Email').fill('complete.user@test.com');
-			await page.getByRole('button', { name: 'Sign Up' }).click();
-
-			await expect(page.getByText('Token is invalid or expired.')).toBeVisible();
+			// The invite check hides the form for unknown tokens, so the rejection is verified at the API
+			const res = await page.request.post('/api/signup', {
+				data: {
+					username: 'completeuser',
+					email: 'complete.user@test.com',
+					firstName: 'Complete',
+					lastName: 'User',
+					token: 'invalidtoken123'
+				}
+			});
+			expect(res.status()).toBe(401);
+			expect((await res.json()).code).toBe('token_invalid_or_expired');
 		});
 
 		test('Signup with token - no token in URL shows error', async ({ page }) => {
@@ -322,7 +328,7 @@ test.describe('User Signup', () => {
 
 			await page.getByRole('button', { name: 'Sign Up' }).click();
 
-			await expect(page.getByText('Email is already in use.')).toBeVisible();
+			await expect(page.getByText('Email is already in use')).toBeVisible();
 		});
 
 		test('Open signup - duplicate username shows error', async ({ page }) => {
@@ -337,7 +343,7 @@ test.describe('User Signup', () => {
 
 			await page.getByRole('button', { name: 'Sign Up' }).click();
 
-			await expect(page.getByText('Username is already in use.')).toBeVisible();
+			await expect(page.getByText('Username is already in use')).toBeVisible();
 		});
 
 		test('Complete signup flow with passkey creation', async ({ page }) => {
@@ -440,14 +446,18 @@ test.describe('User Signup', () => {
 		test('Token usage limit is enforced', async ({ page }) => {
 			await setSignupMode(page, 'Signup with token');
 
-			await page.goto(`/st/${signupTokens.fullyUsed.token}`);
-			await page.getByLabel('First name').fill('Complete');
-			await page.getByLabel('Last name').fill('User');
-			await page.getByLabel('Username').fill('completeuser');
-			await page.getByLabel('Email').fill('complete.user@test.com');
-			await page.getByRole('button', { name: 'Sign Up' }).click();
-
-			await expect(page.getByText('Token is invalid or expired.')).toBeVisible();
+			// The invite check hides the form for exhausted tokens, so the rejection is verified at the API
+			const res = await page.request.post('/api/signup', {
+				data: {
+					username: 'completeuser',
+					email: 'complete.user@test.com',
+					firstName: 'Complete',
+					lastName: 'User',
+					token: signupTokens.fullyUsed.token
+				}
+			});
+			expect(res.status()).toBe(401);
+			expect((await res.json()).code).toBe('token_invalid_or_expired');
 		});
 	});
 });

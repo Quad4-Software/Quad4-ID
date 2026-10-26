@@ -415,6 +415,7 @@
 		],
 		"users": [
 			{
+				"approval_pending": false,
 				"created_at": "2025-11-25T12:39:02Z",
 				"updated_at": null,
 				"disabled": false,
@@ -431,6 +432,7 @@
 				"username": "tim"
 			},
 			{
+				"approval_pending": false,
 				"created_at": "2025-11-25T12:39:02Z",
 				"updated_at": null,
 				"disabled": false,
@@ -447,6 +449,7 @@
 				"username": "craig"
 			},
 			{
+				"approval_pending": false,
 				"created_at": "2025-11-25T12:39:02Z",
 				"updated_at": null,
 				"disabled": false,
