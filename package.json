@@ -1,5 +1,5 @@
 {
-  "name": "pocket-id-repo",
+  "name": "quad4-id-repo",
   "private": true,
   "workspaces": [
     "frontend",

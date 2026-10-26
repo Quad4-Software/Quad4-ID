@@ -304,7 +304,7 @@ test.describe('User Signup', () => {
 			await setAppConfigValues(page.request, {
 				emailVerification: 'required',
 				smtpHost: 'localhost',
-				smtpFrom: 'pocket-id@test.com'
+				smtpFrom: 'quad4-id@test.com'
 			});
 			await setSignupMode(page, 'Open Signup');
 

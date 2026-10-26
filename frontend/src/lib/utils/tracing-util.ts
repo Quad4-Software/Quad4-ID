@@ -13,7 +13,7 @@ import { browser, version } from '$app/env';
 // Type-only imports are erased at build time, so they don't pull the OpenTelemetry libraries into the bundle.
 import type { Context, Span } from '@opentelemetry/api';
 
-const TRACER_NAME = 'pocket-id-frontend';
+const TRACER_NAME = 'quad4-id-frontend';
 
 // Same-origin endpoint that forwards the browser's OTLP payloads to the backend's collector.
 const EXPORTER_URL = '/internal/telemetry/traces';

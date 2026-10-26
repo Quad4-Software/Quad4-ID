@@ -113,7 +113,7 @@ func encryptionKeyRotate(ctx context.Context, flags encryptionKeyRotateFlags, db
 	}
 
 	fmt.Println("Encryption key rotation completed successfully.")
-	fmt.Println("Restart pocket-id with the new ENCRYPTION_KEY to use the rotated data.")
+	fmt.Println("Restart quad4-id with the new ENCRYPTION_KEY to use the rotated data.")
 
 	return nil
 }

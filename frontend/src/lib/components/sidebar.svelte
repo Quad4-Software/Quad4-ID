@@ -144,7 +144,7 @@
 
 	{#if isAdmin && isUpToDate === false}
 		<a
-			href="https://github.com/pocket-id/pocket-id/releases/latest"
+			href="https://github.com/Quad4-Software/Quad4-ID/releases/latest"
 			target="_blank"
 			rel="noopener noreferrer"
 			class={cn(

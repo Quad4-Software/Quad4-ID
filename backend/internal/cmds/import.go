@@ -38,7 +38,7 @@ func init() {
 		},
 	}
 
-	importCmd.Flags().StringVarP(&flags.Path, "path", "p", "pocket-id-export.zip", "Path to the ZIP file to import the data from, or '-' to read from stdin")
+	importCmd.Flags().StringVarP(&flags.Path, "path", "p", "quad4-id-export.zip", "Path to the ZIP file to import the data from, or '-' to read from stdin")
 	importCmd.Flags().BoolVarP(&flags.Yes, "yes", "y", false, "Skip confirmation prompts")
 	importCmd.Flags().BoolVarP(&flags.ForcefullyAcquireLock, "forcefully-acquire-lock", "", false, "Forcefully acquire exclusive access by terminating any running Pocket ID instance")
 

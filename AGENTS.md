@@ -1,7 +1,8 @@
 # AGENTS.md
 
-Pocket ID — a passkey-only OIDC provider. Go backend serves a SvelteKit SPA (embedded in
-the binary for production). This file lists what isn't obvious from reading the code.
+Quad4 ID — a passkey-only OIDC provider. Go backend serves a SvelteKit SPA (embedded in
+the binary for production). The binary and container image are named quad4-id. The default
+branch is master. This file lists what isn't obvious from reading the code.
 
 ## Layout
 
@@ -16,7 +17,7 @@ the binary for production). This file lists what isn't obvious from reading the 
 go test -tags=exclude_frontend,unit ./...                          # unit/integration tests
 go test -tags=exclude_frontend,unit -run TestName ./internal/...   # a single test
 # Tests that need Postgres are skipped unless POCKET_ID_TEST_POSTGRES_URL points at a server (each test creates its own database)
-docker run -d --rm --name pocket-id-test-pg -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:17
+docker run -d --rm --name quad4-id-test-pg -e POSTGRES_PASSWORD=postgres -p 55432:5432 postgres:17
 POCKET_ID_TEST_POSTGRES_URL='postgres://postgres:postgres@localhost:55432/postgres?sslmode=disable' go test -tags=exclude_frontend,unit ./...
 golangci-lint run  # lint (config: backend/.golangci.yml - includes build tags)
 
@@ -35,13 +36,23 @@ cd tests/setup && docker compose up -d --build   # rebuild after ANY code change
 cd ../.. && pnpm test                            # = playwright test in tests/
 ```
 
+## Release
+
+```sh
+# bump .version and frontend/package.json version to X.Y.Z, commit, then:
+git tag vX.Y.Z && git push origin vX.Y.Z   # the release workflow builds binaries and the GHCR image
+```
+
+The container image is built from the single `docker/Dockerfile` (multi-stage, from source) and runs
+rootless as uid 65532 on a read-only filesystem: writable paths are /app/data (volume) and /tmp (tmpfs).
+
 ## Critical gotchas
 
 - **`exclude_frontend` and `unit` build tags.** Without them plain `go run`/`go test`/`golangci-lint` fail
   to run. Always pass `-tags exclude_frontend,unit` for backend dev/test/lint.
 - **Never edit generated files:** `frontend/src/lib/paraglide/**` (Paraglide i18n output) and
-  `backend/frontend/dist/**`. For i18n, only edit `frontend/messages/en.json`; other locales come
-  from Crowdin.
+  `backend/frontend/dist/**`. For i18n, edit `frontend/messages/en.json`; other locales are not
+  synced anymore and are edited directly in `frontend/messages/`.
 - **Migrations are split by DB.** Raw SQL via golang-migrate in
   `backend/resources/migrations/{sqlite,postgres}/` — separate files _and_ separate version
   timelines. Add a matching up/down pair to **both**. Not GORM AutoMigrate. SQLite migrations
@@ -56,7 +67,8 @@ cd ../.. && pnpm test                            # = playwright test in tests/
 
 - **Config:** global `common.EnvConfig` (caarlos0/env); any secret var supports a `*_FILE` variant.
 - **Logging:** stdlib `log/slog` only (bridged to OpenTelemetry). No zerolog/logrus in app code.
-- Fosite comes from Pocket ID's **fork** `github.com/pocket-id/fosite`, not `github.com/ory/fosite`. It ports upstream fixes from `ory/hydra`.
+- Fosite comes from the **fork** `github.com/pocket-id/fosite`, not `github.com/ory/fosite`. It ports upstream fixes from `ory/hydra`.
+  The Go module path stays `github.com/pocket-id/pocket-id/backend` to keep upstream merges manageable.
 
 ## Frontend (SvelteKit)
 

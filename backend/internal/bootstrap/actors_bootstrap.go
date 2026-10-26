@@ -315,20 +315,6 @@ func (o *NewActorsOpts) registerCronJobs(host francishost.Host) (err error) {
 		return nil
 	}
 
-	// Register the analytics job
-	analyticsJob, err := job.GetAnalyticsJob(o.HttpClient, o.InstanceID)
-	if err != nil {
-		return fmt.Errorf("failed to get analytics cron job: %w", err)
-	}
-
-	// This could be nil if analytics are disabled
-	if analyticsJob != nil {
-		err = host.RegisterBuiltInActor(analyticsJob)
-		if err != nil {
-			return fmt.Errorf("error registering built-in actor for analytics job: %w", err)
-		}
-	}
-
 	// Register the file cleanup jobs
 	fileCleanupJobs, err := job.GetFileCleanupJobs(o.DB, o.FileStorage)
 	if err != nil {

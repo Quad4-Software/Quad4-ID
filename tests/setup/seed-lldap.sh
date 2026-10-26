@@ -183,8 +183,8 @@ fi
 echo "Setting up LLDAP test data..."
 
 echo "Creating test users..."
-create_user "testuser1" "testuser1@pocket-id.org" "Test User 1" "Test" "User" "password123"
-create_user "testuser2" "testuser2@pocket-id.org" "Test User 2" "Test2" "User2" "password123"
+create_user "testuser1" "testuser1@quad4-id.test" "Test User 1" "Test" "User" "password123"
+create_user "testuser2" "testuser2@quad4-id.test" "Test User 2" "Test2" "User2" "password123"
 
 echo "Creating test groups..."
 create_group "test_group"

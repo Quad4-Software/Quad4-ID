@@ -25,13 +25,13 @@ services:
       interval: 1s
       timeout: 3s
       retries: 10
-  pocket-id:
+  quad4-id:
     extends:
       file: docker-compose.yml
-      service: pocket-id
+      service: quad4-id
     environment:
       FILE_BACKEND: s3
-      S3_BUCKET: pocket-id-test
+      S3_BUCKET: quad4-id-test
       S3_REGION: us-east-1
       S3_ENDPOINT: http://localstack-s3:4566
       S3_ACCESS_KEY_ID: test
@@ -42,4 +42,4 @@ services:
         condition: service_healthy
 
 volumes:
-  pocket-id-test-data:
+  quad4-id-test-data:

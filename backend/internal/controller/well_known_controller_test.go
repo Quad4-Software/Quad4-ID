@@ -97,7 +97,7 @@ func TestOAuthAuthorizationServerMetadata(t *testing.T) {
 	assert.Contains(t, doc["scopes_supported"], "openid")
 	assert.Contains(t, doc["grant_types_supported"], "authorization_code")
 	assert.Contains(t, doc["code_challenge_methods_supported"], "S256")
-	assert.Equal(t, "https://pocket-id.org/docs", doc["service_documentation"])
+	assert.Equal(t, "https://github.com/Quad4-Software/Quad4-ID", doc["service_documentation"])
 	assert.ElementsMatch(t, []any{"query", "fragment", "form_post"}, doc["response_modes_supported"])
 	assert.NotContains(t, doc, "revocation_endpoint")
 	assert.NotContains(t, doc, "registration_endpoint")

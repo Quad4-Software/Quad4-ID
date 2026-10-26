@@ -1,38 +1,60 @@
-# <div align="center"><img  src="https://github.com/user-attachments/assets/d906ac59-9269-4aa0-8c0d-e9619d0de04c" width="100"/> </br>Pocket ID</div>
+# Quad4 ID
 
+Quad4 ID is a passkey-only OpenID Connect and OAuth 2.0 provider that lets users sign in to your applications without passwords.
 
+Quad4 ID is based on [Pocket ID](https://github.com/pocket-id/pocket-id). The code is derived from it under the BSD 2-Clause license.
 
-Pocket ID is an easy-to-use OpenID Connect Certified™ and OAuth 2.0 provider that lets users sign in to your applications with passkeys.
+## Install
 
-→ Try out the [Demo](https://demo.pocket-id.org)
+The recommended way to run Quad4 ID is Docker Compose:
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset=".github/assets/screenshot-dark.png">
-  <img src=".github/assets/screenshot-light.png" alt="The Pocket ID sign-in page for Pangolin" width="1200">
-</picture>
+```yaml
+services:
+  quad4-id:
+    image: ghcr.io/quad4-software/quad4-id:latest
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - 1411:1411
+    user: "65532:65532"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - "./data:/app/data"
+```
 
-The goal of Pocket ID is to be a simple and easy-to-use. There are other self-hosted OIDC and OAuth 2.0 providers like [Keycloak](https://www.keycloak.org/) or [ORY Hydra](https://www.ory.sh/hydra/) but they are often too complex for simple use cases.
+The container runs rootless as uid 65532. If you bind-mount a ./data directory, it must be writable by that uid:
 
-Additionally, what makes Pocket ID special is that it only supports [passkey](https://www.passkeys.io/) authentication, which means you don’t need a password. Some people might not like this idea at first, but I believe passkeys are the future, and once you try them, you’ll love them. For example, you can now use a physical Yubikey to sign in to all your self-hosted services easily and securely.
+```sh
+mkdir -p data && chown 65532:65532 data
+```
 
-<a href="https://openid.net/certification/certified-openid-providers-profiles">
-    <img src="https://github.com/user-attachments/assets/697a8b8f-61bc-412f-8222-5410da7292c7" height="80" alt="OpenID Connect Certified">
-</a>
+Copy `.env.example` to `.env` and set at least `APP_URL` and `ENCRYPTION_KEY`.
 
-## Setup
+The images use zstd-compressed layers, so pulling them requires Docker Engine 23 or newer, or any containerd 1.5+ based runtime.
 
-Pocket ID can be set up in multiple ways. The easiest and recommended way is to use Docker.
+## Build from source
 
-Visit the [documentation](https://docs.pocket-id.org) for the setup guide and more information.
+Requires Go and Node.js with pnpm (via Vite+ vp).
 
-## Contribute
+```sh
+pnpm install --frozen-lockfile
+pnpm -C frontend run build
+cd backend
+CGO_ENABLED=0 go build -o quad4-id ./cmd
+```
 
-You're very welcome to contribute to Pocket ID! Please follow the [contribution guide](https://github.com/pocket-id/.github/blob/main/CONTRIBUTING.md) to get started. See the [development guide](https://pocket-id.org/docs/helping-out/development) for setup, formatting, and testing instructions.
+Run the backend tests with `go test -tags=exclude_frontend,unit ./...` from `backend/`.
 
-<div align="center">
-<br />
-<br />
-<a href="https://vercel.com/open-source-program">
-  <img alt="Vercel OSS Program" src="https://vercel.com/oss/program-badge-2026.svg" />
-</a>
-</div>
+## Releases
+
+To cut a release, bump `.version` and the `version` field in `frontend/package.json` to `X.Y.Z`, commit, tag `vX.Y.Z`, and push the tag. The release workflow builds binaries and the container image and generates release notes from the commit history without usernames or issue numbers.
+
+## License
+
+BSD 2-Clause. See LICENSE.

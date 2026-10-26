@@ -125,7 +125,7 @@ func (wkc *WellKnownController) computeServerMetadata() ([]byte, error) {
 		"backchannel_logout_supported":                   true,
 		"backchannel_logout_session_supported":           false,
 		"client_id_metadata_document_supported":          cimdSupported,
-		"service_documentation":                          "https://pocket-id.org/docs",
+		"service_documentation":                          "https://github.com/Quad4-Software/Quad4-ID",
 	}
 	return json.Marshal(config)
 }

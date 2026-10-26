@@ -28,7 +28,7 @@ func init() {
 		},
 	}
 
-	exportCmd.Flags().StringVarP(&flags.Path, "path", "p", "pocket-id-export.zip", "Path to the ZIP file to export the data to, or '-' to write to stdout")
+	exportCmd.Flags().StringVarP(&flags.Path, "path", "p", "quad4-id-export.zip", "Path to the ZIP file to export the data to, or '-' to write to stdout")
 
 	rootCmd.AddCommand(exportCmd)
 }

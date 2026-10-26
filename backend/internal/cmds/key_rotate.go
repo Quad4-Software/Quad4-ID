@@ -89,7 +89,7 @@ func keyRotate(ctx context.Context, flags keyRotateFlags, db *gorm.DB, instanceI
 	}
 
 	if !flags.Yes {
-		fmt.Println("WARNING: Rotating the private key will invalidate all existing tokens. Both pocket-id and all client applications will likely need to be restarted.")
+		fmt.Println("WARNING: Rotating the private key will invalidate all existing tokens. Both quad4-id and all client applications will likely need to be restarted.")
 		ok, err := utils.PromptForConfirmation("Confirm")
 		if err != nil {
 			return err
@@ -119,7 +119,7 @@ func keyRotate(ctx context.Context, flags keyRotateFlags, db *gorm.DB, instanceI
 	}
 
 	fmt.Println("Key rotated successfully")
-	fmt.Println("Note: if pocket-id is running, you will need to restart it for the new key to be loaded")
+	fmt.Println("Note: if quad4-id is running, you will need to restart it for the new key to be loaded")
 
 	return nil
 }
@@ -156,7 +156,7 @@ func sessionKeyRotate(ctx context.Context, flags keyRotateFlags, db *gorm.DB, in
 	}
 
 	fmt.Println("Session key rotated successfully")
-	fmt.Println("Note: if pocket-id is running, you will need to restart it for the new key to be loaded")
+	fmt.Println("Note: if quad4-id is running, you will need to restart it for the new key to be loaded")
 
 	return nil
 }

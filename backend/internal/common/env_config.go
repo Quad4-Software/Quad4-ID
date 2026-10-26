@@ -65,7 +65,6 @@ type EnvConfigSchema struct {
 	ProxyProtocol             TrustProxyConfig `env:"PROXY_PROTOCOL"`
 	TrustedPlatform           string           `env:"TRUSTED_PLATFORM"`
 	AuditLogRetentionDays     int              `env:"AUDIT_LOG_RETENTION_DAYS"`
-	AnalyticsDisabled         bool             `env:"ANALYTICS_DISABLED"`
 	AllowDowngrade            bool             `env:"ALLOW_DOWNGRADE"`
 	AllowInsecureCallbackURLs bool             `env:"ALLOW_INSECURE_CALLBACK_URLS"`
 	InternalAppURL            string           `env:"INTERNAL_APP_URL"`

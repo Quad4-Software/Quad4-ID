@@ -25,7 +25,7 @@ async function requireEmailVerificationWithSmtp(request: APIRequestContext) {
 		emailVerification: 'required',
 		smtpHost: 'host.docker.internal',
 		smtpPort: String(smtpSinkPort),
-		smtpFrom: 'pocket-id@test.com',
+		smtpFrom: 'quad4-id@test.com',
 		smtpTls: 'none'
 	});
 }

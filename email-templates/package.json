@@ -1,5 +1,5 @@
 {
-	"name": "pocketid-email-templates",
+	"name": "quad4-id-email-templates",
 	"version": "1.0.0",
 	"scripts": {
 		"preinstall": "npx only-allow pnpm",

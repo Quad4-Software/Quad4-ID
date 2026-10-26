@@ -2,15 +2,15 @@ name: CI
 
 on:
   push:
-    branches: [main, "v[0-9]+"]
+    branches: [master, "v[0-9]+"]
   pull_request:
-    branches: [main, "v[0-9]+"]
+    branches: [master, "v[0-9]+"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Cancel outdated runs of a pull request but test every commit on main and the major version branches
+# Cancel outdated runs of a pull request but test every commit on master and the major version branches
 concurrency:
   group: ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
@@ -26,7 +26,6 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       e2e: ${{ steps.filter.outputs.e2e }}
-      locale-files: ${{ steps.filter.outputs.locale-files }}
 
     steps:
       - name: Detect changed areas
@@ -64,7 +63,7 @@ jobs:
             [ "$all" = true ] || grep -q -E "$1" <<< "$2"
           }
 
-          # Translated locales only come from Crowdin and don't affect the English end-to-end tests
+          # Locales other than en.json are not synced anymore and do not affect the English end-to-end tests
           e2e_files=$(grep -v -E '^(docs/|\.github/)|\.md$|^frontend/messages/.+\.json$' <<< "$files" || true)
           e2e_files+=$'\n'$(grep -x 'frontend/messages/en.json' <<< "$files" || true)
 
@@ -74,45 +73,13 @@ jobs:
             matches '.' "$e2e_files" && echo "e2e=true" || echo "e2e=false"
           } >> "$GITHUB_OUTPUT"
 
-          # Every locale except en.json is committed to main by the Crowdin download workflow, so pull requests must not change them
-          if [ "$EVENT_NAME" = pull_request ]; then
-            locale_files=$(grep -E '^frontend/messages/.+\.json$' <<< "$files" | grep -v -x 'frontend/messages/en.json' | sort -u | tr '\n' ' ' || true)
-            echo "locale-files=${locale_files% }" >> "$GITHUB_OUTPUT"
-          fi
-
           cat "$GITHUB_OUTPUT"
-
-  translations:
-    name: Translations
-    needs: changes
-    if: needs.changes.outputs.locale-files != ''
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Reject changes to translated locales
-        env:
-          LOCALE_FILES: ${{ needs.changes.outputs.locale-files }}
-        run: |
-          # Fail with an annotation per file so contributors see why directly on the PR
-          for file in $LOCALE_FILES; do
-            echo "::error file=$file::Translations are managed on Crowdin and can't be changed in this repository. Please contribute translations at https://crowdin.com/project/pocket-id instead."
-          done
-          {
-            echo "### Translation files can't be changed in pull requests"
-            echo
-            echo "Only \`frontend/messages/en.json\` may be edited. All other locales are synced from [Crowdin](https://crowdin.com/project/pocket-id) automatically, so changes here would be overwritten."
-            echo
-            echo "Revert the changes to these files:"
-            echo
-            for file in $LOCALE_FILES; do echo "- \`$file\`"; done
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
 
   backend-lint:
     name: Backend lint
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       # Needed by the only-new-issues option
@@ -146,7 +113,7 @@ jobs:
       matrix:
         include:
           - name: Linux
-            runner: depot-ubuntu-latest
+            runner: ubuntu-latest
           - name: Windows
             runner: windows-latest
     runs-on: ${{ matrix.runner }}
@@ -172,6 +139,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           docker run -d --name postgres -e POSTGRES_PASSWORD=postgres -p 5432:5432 --health-cmd "pg_isready -U postgres" --health-interval 1s --health-retries 60 postgres:17
+          # shellcheck disable=SC2016 # the inner expression is evaluated by the spawned shell, not this one
           timeout 60 sh -c 'until [ "$(docker inspect -f "{{.State.Health.Status}}" postgres)" = healthy ]; do sleep 1; done'
           echo "POCKET_ID_TEST_POSTGRES_URL=postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable" >> "$GITHUB_ENV"
           echo "POCKET_ID_TEST_POSTGRES_REQUIRED=true" >> "$GITHUB_ENV"
@@ -184,7 +152,7 @@ jobs:
     name: Backend tests (race detector)
     needs: changes
     if: needs.changes.outputs.backend == 'true'
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -210,7 +178,7 @@ jobs:
     name: Svelte check
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: depot-ubuntu-latest
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -228,7 +196,7 @@ jobs:
       - name: Install dependencies
         run: vp -C frontend install --frozen-lockfile
 
-      - name: Build Pocket ID Frontend
+      - name: Build Quad4 ID Frontend
         run: vp -C frontend run build
 
       - name: Add svelte-check problem matcher
@@ -241,11 +209,9 @@ jobs:
     name: E2E (${{ matrix.db }}, ${{ matrix.storage }}, ${{ matrix.francis }})
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
-    runs-on: depot-ubuntu-24.04-32
+    runs-on: ubuntu-latest
     permissions:
       contents: read
-      # Needed by Depot to authenticate the Docker builds
-      id-token: write
     strategy:
       fail-fast: false
       matrix:
@@ -281,11 +247,6 @@ jobs:
           node-version-file: .node-version
           cache: true
           run-install: false
-
-      - name: Set up Depot CLI
-        uses: depot/setup-action@91bc8495a33ebfc504ffc89e5674379ccf23c29c # v1.7.2
-        with:
-          configure-docker: true
 
       - name: Cache Playwright Browsers
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -346,9 +307,11 @@ jobs:
         run: |
           # Read the version of Francis from backend/go.mod and use that runtime
           VERSION=$(./francis-version.sh)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "image=ghcr.io/italypaleale/francis:$VERSION" >> "$GITHUB_OUTPUT"
-          echo "key=francis-$VERSION" >> "$GITHUB_OUTPUT"
+          {
+            echo "version=$VERSION"
+            echo "image=ghcr.io/italypaleale/francis:$VERSION"
+            echo "key=francis-$VERSION"
+          } >> "$GITHUB_OUTPUT"
       - name: Cache Francis runtime Docker image
         if: matrix.francis == 'remote'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -358,9 +321,11 @@ jobs:
           key: ${{ steps.francis-image.outputs.key }}-${{ runner.os }}
       - name: Pull and save Francis runtime image
         if: matrix.francis == 'remote' && steps.francis-cache.outputs.cache-hit != 'true'
+        env:
+          FRANCIS_IMAGE: ${{ steps.francis-image.outputs.image }}
         run: |
-          docker pull "${{ steps.francis-image.outputs.image }}"
-          docker save "${{ steps.francis-image.outputs.image }}" > /tmp/francis-image.tar
+          docker pull "$FRANCIS_IMAGE"
+          docker save "$FRANCIS_IMAGE" > /tmp/francis-image.tar
       - name: Load Francis runtime image
         if: matrix.francis == 'remote' && steps.francis-cache.outputs.cache-hit == 'true'
         run: docker load < /tmp/francis-image.tar
@@ -374,21 +339,26 @@ jobs:
 
       - name: Run Docker containers
         working-directory: ./tests/setup
+        env:
+          MATRIX_STORAGE: ${{ matrix.storage }}
+          MATRIX_FRANCIS: ${{ matrix.francis }}
+          MATRIX_DB: ${{ matrix.db }}
+          FRANCIS_VERSION: ${{ steps.francis-image.outputs.version }}
         run: |
           DOCKER_COMPOSE_FILE=docker-compose.yml
 
           cat > .env <<EOF
-          FILE_BACKEND=${{ matrix.storage }}
-          FRANCIS_VERSION=${{ steps.francis-image.outputs.version }}
+          FILE_BACKEND=$MATRIX_STORAGE
+          FRANCIS_VERSION=$FRANCIS_VERSION
           SCIM_SERVICE_PROVIDER_URL=http://localhost:18123/v2
           SCIM_SERVICE_PROVIDER_URL_INTERNAL=http://scim-test-server:8080/v2
           EOF
 
-          if [ "${{ matrix.francis }}" = "remote" ]; then
+          if [ "$MATRIX_FRANCIS" = "remote" ]; then
             DOCKER_COMPOSE_FILE=docker-compose-francis.yml
-          elif [ "${{ matrix.db }}" = "postgres" ]; then
+          elif [ "$MATRIX_DB" = "postgres" ]; then
             DOCKER_COMPOSE_FILE=docker-compose-postgres.yml
-          elif [ "${{ matrix.storage }}" = "s3" ]; then
+          elif [ "$MATRIX_STORAGE" = "s3" ]; then
             DOCKER_COMPOSE_FILE=docker-compose-s3.yml
           fi
 
@@ -397,7 +367,7 @@ jobs:
           {
             LOG_FILE="/tmp/backend.log"
             while true; do
-              CID=$(docker compose -f "$DOCKER_COMPOSE_FILE" ps -q pocket-id)
+              CID=$(docker compose -f "$DOCKER_COMPOSE_FILE" ps -q quad4-id)
               if [ -n "$CID" ]; then
                 echo "[$(date)] Attaching logs for $CID" >> "$LOG_FILE"
                 docker logs -f --since=0 "$CID" >> "$LOG_FILE" 2>&1
@@ -408,7 +378,7 @@ jobs:
             done
           } &
 
-          if [ "${{ matrix.francis }}" = "remote" ]; then
+          if [ "$MATRIX_FRANCIS" = "remote" ]; then
             docker compose -f "$DOCKER_COMPOSE_FILE" logs -f --no-log-prefix francis-runtime > /tmp/francis-runtime.log 2>&1 &
           fi
 
@@ -445,7 +415,7 @@ jobs:
   # The only check the ruleset requires, so jobs can be added, renamed or skipped without touching the ruleset
   ci-success:
     name: CI success
-    needs: [changes, translations, backend-lint, backend-test, backend-test-race, svelte-check, e2e]
+    needs: [changes, backend-lint, backend-test, backend-test-race, svelte-check, e2e]
     if: always()
     runs-on: ubuntu-latest
 

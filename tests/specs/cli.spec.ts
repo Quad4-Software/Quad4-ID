@@ -8,7 +8,7 @@ import path from 'path';
 import { cleanupBackend } from 'utils/cleanup.util';
 import { pathFromRoot, tmpDir } from 'utils/fs.util';
 
-const containerName = 'pocket-id';
+const containerName = 'quad4-id';
 const setupDir = pathFromRoot('setup');
 const exampleExportPath = pathFromRoot('resources/export');
 const dockerCommandMaxBuffer = 100 * 1024 * 1024;
@@ -311,12 +311,12 @@ function runImport(pathToFile: string) {
 		'run',
 		'-d',
 		'-v',
-		`${pathToFile}:/app/data/pocket-id-export.zip`,
+		`${pathToFile}:/app/data/quad4-id-export.zip`,
 		containerName,
-		'/app/pocket-id',
+		'/app/quad4-id',
 		'import',
 		'--path',
-		'/app/data/pocket-id-export.zip',
+		'/app/data/quad4-id-export.zip',
 		'--yes'
 	]);
 	try {
@@ -328,7 +328,7 @@ function runImport(pathToFile: string) {
 
 function runImportFromStdin(archive: Buffer): void {
 	runDockerComposeCommandRaw(
-		['run', '--rm', '-T', containerName, '/app/pocket-id', 'import', '--yes', '--path', '-'],
+		['run', '--rm', '-T', containerName, '/app/quad4-id', 'import', '--yes', '--path', '-'],
 		{ input: archive }
 	);
 }
@@ -338,16 +338,16 @@ function runExport(outputFile: string): void {
 		'run',
 		'-d',
 		containerName,
-		'/app/pocket-id',
+		'/app/quad4-id',
 		'export',
 		'--path',
-		'/app/data/pocket-id-export.zip'
+		'/app/data/quad4-id-export.zip'
 	]);
 
 	try {
 		// Wait until export finishes
 		runDockerCommand(['wait', containerId]);
-		runDockerCommand(['cp', `${containerId}:/app/data/pocket-id-export.zip`, outputFile]);
+		runDockerCommand(['cp', `${containerId}:/app/data/quad4-id-export.zip`, outputFile]);
 	} finally {
 		runDockerCommand(['rm', '-f', containerId]);
 	}
@@ -361,7 +361,7 @@ function runExportToStdout(): Buffer {
 		'--rm',
 		'-T',
 		containerName,
-		'/app/pocket-id',
+		'/app/quad4-id',
 		'export',
 		'--path',
 		'-'

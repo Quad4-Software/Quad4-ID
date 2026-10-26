@@ -1,7 +1,7 @@
 import boto3
 from botocore.exceptions import ClientError
 
-BUCKET_NAME = "pocket-id-test"
+BUCKET_NAME = "quad4-id-test"
 
 
 def main() -> None:

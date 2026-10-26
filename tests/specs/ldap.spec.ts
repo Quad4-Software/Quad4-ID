@@ -33,8 +33,8 @@ test.describe('LDAP Integration', () => {
 		await page.goto('/settings/admin/users');
 
 		// Verify the LDAP users exist
-		await expect(page.getByText('testuser1@pocket-id.org')).toBeVisible();
-		await expect(page.getByText('testuser2@pocket-id.org')).toBeVisible();
+		await expect(page.getByText('testuser1@quad4-id.test')).toBeVisible();
+		await expect(page.getByText('testuser2@quad4-id.test')).toBeVisible();
 
 		// Check LDAP user details
 		await page.getByRole('row', { name: 'testuser1' }).getByRole('button').click();

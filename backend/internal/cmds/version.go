@@ -13,7 +13,7 @@ func init() {
 		Use:   "version",
 		Short: "Print the version number",
 		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("pocket-id " + common.Version)
+			fmt.Println("quad4-id " + common.Version)
 		},
 	})
 }

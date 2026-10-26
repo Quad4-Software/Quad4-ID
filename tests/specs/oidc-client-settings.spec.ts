@@ -367,10 +367,10 @@ test('Displays OIDC client endpoints from discovery configuration', async ({ pag
 	const oidcConfiguration = {
 		issuer: 'https://id.example.com',
 		authorization_endpoint: 'https://id.example.com/authorize',
-		token_endpoint: 'http://pocket-id:1411/api/oidc/token',
-		userinfo_endpoint: 'http://pocket-id:1411/api/oidc/userinfo',
+		token_endpoint: 'http://quad4-id:1411/api/oidc/token',
+		userinfo_endpoint: 'http://quad4-id:1411/api/oidc/userinfo',
 		end_session_endpoint: 'https://id.example.com/api/oidc/end-session',
-		jwks_uri: 'http://pocket-id:1411/.well-known/jwks.json'
+		jwks_uri: 'http://quad4-id:1411/.well-known/jwks.json'
 	};
 
 	await page.route('**/.well-known/openid-configuration', async (route) => {
@@ -467,7 +467,7 @@ test('Update OIDC client federated credentials', async ({ page }) => {
 	await card.getByRole('button', { name: 'Create', exact: true }).click();
 	await card.getByLabel('Issuer').fill('https://issuer.example.com');
 	await card.getByLabel('Subject').fill('workload-client');
-	await card.getByLabel('Audience').fill('https://pocket-id.example.com');
+	await card.getByLabel('Audience').fill('https://quad4-id.example.com');
 
 	const cardUpdate = page.waitForResponse(
 		(response) =>
@@ -480,7 +480,7 @@ test('Update OIDC client federated credentials', async ({ page }) => {
 	await page.reload();
 	await expect(card.getByLabel('Issuer')).toHaveValue('https://issuer.example.com');
 	await expect(card.getByLabel('Subject')).toHaveValue('workload-client');
-	await expect(card.getByLabel('Audience')).toHaveValue('https://pocket-id.example.com');
+	await expect(card.getByLabel('Audience')).toHaveValue('https://quad4-id.example.com');
 
 	await card.getByRole('radio', { name: 'Public keys' }).click();
 	await card.getByRole('button', { name: 'Add another federated client credential' }).click();

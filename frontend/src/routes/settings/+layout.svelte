@@ -113,7 +113,7 @@
 				{m.powered_by()}
 				<a
 					class="text-foreground transition-all hover:underline"
-					href="https://github.com/pocket-id/pocket-id"
+					href="https://github.com/Quad4-Software/Quad4-ID"
 					target="_blank">Pocket ID</a
 				>
 				({versionInformation.currentVersion})

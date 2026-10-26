@@ -1,15 +1,23 @@
 services:
-  pocket-id:
-    image: pocketid/pocket-id:v2 # or ghcr.io/pocket-id/pocket-id:v2
+  quad4-id:
+    image: ghcr.io/quad4-software/quad4-id:latest
     restart: unless-stopped
     env_file: .env
     ports:
       - 1411:1411
+    user: "65532:65532"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - "./data:/app/data"
     # Optional healthcheck
     healthcheck:
-      test: [ "CMD", "/app/pocket-id", "healthcheck" ]
+      test: [ "CMD", "/app/quad4-id", "healthcheck" ]
       interval: 1m30s
       timeout: 5s
       retries: 2

@@ -1,21 +1,24 @@
-# git-cliff ~ configuration file
+# git-cliff configuration file
 # https://git-cliff.org/docs/configuration
-
-[remote.github]
-owner = "pocket-id"
-repo = "pocket-id"
 
 [git]
 conventional_commits = true
 filter_unconventional = true
-commit_preprocessors = [{ pattern = '\((\w+\s)?#([0-9]+)\)', replace = "" }]
+# Strip references to pull requests and users so release notes only ever contain subjects and commit links
+commit_preprocessors = [
+        { pattern = '\((\w+\s)?#\d+\)', replace = "" },
+        { pattern = '[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#\d+', replace = "" },
+        { pattern = '\B#\d+\b', replace = "" },
+        { pattern = '(^|[^A-Za-z0-9_])@([A-Za-z0-9_-]+)', replace = "$1$2" },
+        { pattern = '\s+$', replace = "" },
+]
 commit_parsers = [
         { message = "^feat", group = "Features" },
         { message = "^fix", group = "Bug Fixes" },
         { message = "^docs", group = "Documentation" },
         { message = "^perf", group = "Performance Improvements" },
-        { message = "^release", skip = true },
-        { message = "update translations via Crowdin", skip = true },
+        { message = "^release:", skip = true },
+        { message = "^chore: import", skip = true },
         { message = ".*", group = "Other", default_scope = "other"},
 ]
 filter_commits = false
@@ -31,19 +34,14 @@ body = """
 {% for entry in commits | commit_groups(groups=commit_parsers_groups) %}
 ### {{ entry.group | title }}
 {% for commit in entry.commits %}
-  - {{ commit.message | trim }} \
-    {%- if commit.remote.pr_number %} ([#{{ commit.remote.pr_number }}]({{ self::remote_url() }}/pull/{{ commit.remote.pr_number }}) by @{{ commit.remote.pr_author | default(value=commit.remote.username) | default(value=commit.author.name) }}){%- else %} ([{{ commit.id | truncate(length=7, end="") }}]({{ self::remote_url() }}/commit/{{ commit.id }}) by @{{ commit.remote.username | default(value=commit.author.name) }}){%- endif -%}
-{% endfor %}
+  - {{ commit.message | trim }} ([{{ commit.id | truncate(length=7, end="") }}](https://github.com/Quad4-Software/Quad4-ID/commit/{{ commit.id }}))
+{%- endfor %}
 {% endfor %}
 {% if version -%}
     {% if previous.version -%}
-      **Full Changelog**: {{ self::remote_url() }}/compare/{{ previous.version }}...{{ version }}
+      **Full Changelog**: https://github.com/Quad4-Software/Quad4-ID/compare/{{ previous.version }}...{{ version }}
     {% endif %}
 {% else -%}
   {% raw %}\n{% endraw %}
 {% endif %}
-
-{%- macro remote_url() -%}
-  https://github.com/{{ remote.github.owner }}/{{ remote.github.repo }}
-{%- endmacro -%}
 """

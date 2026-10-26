@@ -16,7 +16,7 @@ import (
 
 const (
 	versionTTL      = 15 * time.Minute
-	versionCheckURL = "https://api.github.com/repos/pocket-id/pocket-id/releases/latest"
+	versionCheckURL = "https://api.github.com/repos/Quad4-Software/Quad4-ID/releases/latest"
 )
 
 type Service struct {

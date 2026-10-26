@@ -9,11 +9,10 @@ node_modules
 
 # Output
 .output
-.vercel
 /frontend/.svelte-kit
 /frontend/build
 /backend/bin
-pocket-id
+quad4-id
 /tests/test-results/*.json
 .tmp/
 
@@ -38,7 +37,7 @@ vite.config.ts.timestamp-*
 *.so
 *.dylib
 /backend/.bin
-/pocket-id
+/quad4-id
 
 # Application specific
 data

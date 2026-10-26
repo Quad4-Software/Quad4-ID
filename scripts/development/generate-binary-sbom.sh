@@ -8,7 +8,7 @@ source_name=$3
 source_version=$4
 frontend_sbom_path="../.tmp/frontend.cdx.json"
 
-work_dir=$(mktemp -d "${TMPDIR:-/tmp}/pocket-id-binary-sbom.XXXXXX")
+work_dir=$(mktemp -d "${TMPDIR:-/tmp}/quad4-id-binary-sbom.XXXXXX")
 trap 'rm -rf "$work_dir"' EXIT
 
 cp "$artifact_path" "$work_dir/$(basename "$artifact_path")"

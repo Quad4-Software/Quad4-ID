@@ -12,15 +12,15 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:          "pocket-id",
+	Use:          "quad4-id",
 	Short:        "A simple and easy-to-use OIDC provider that allows users to authenticate with their passkeys to your services.",
-	Long:         "By default, this command starts the pocket-id server.",
+	Long:         "By default, this command starts the quad4-id server.",
 	SilenceUsage: true,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Start the server
 		err := bootstrap.Bootstrap(cmd.Context())
 		if err != nil {
-			slog.Error("Failed to run pocket-id", "error", err)
+			slog.Error("Failed to run quad4-id", "error", err)
 			os.Exit(1)
 		}
 	},

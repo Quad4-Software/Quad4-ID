@@ -1,6 +1,6 @@
 {
-	"name": "pocket-id-frontend",
-	"version": "2.19.1",
+	"name": "quad4-id-frontend",
+	"version": "0.1.0",
 	"private": true,
 	"type": "module",
 	"imports": {
