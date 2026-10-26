@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,7 +63,7 @@ func TestAppImagesService_GetImageWithDefault(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, int64(len(payload)), size)
 		assert.Equal(t, "image/svg+xml", mimeType)
-		assert.True(t, strings.Contains(string(payload), "<svg"))
+		assert.Contains(t, string(payload), "<svg")
 	})
 
 	t.Run("returns not found if no embedded image exists", func(t *testing.T) {

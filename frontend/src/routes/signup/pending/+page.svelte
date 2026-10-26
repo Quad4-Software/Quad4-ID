@@ -7,6 +7,7 @@
 	import UserService from '#lib/services/user-service.ts';
 	import WebAuthnService from '#lib/services/webauthn-service.ts';
 	import { axiosErrorToast } from '#lib/utils/error-util.ts';
+	import { isAxiosError } from 'axios';
 	import { onDestroy, onMount } from 'svelte';
 	import LoginLogoErrorSuccessIndicator from '../../login/components/login-logo-error-success-indicator.svelte';
 
@@ -21,7 +22,11 @@
 			if (!user.approvalPending) {
 				await goto('/');
 			}
-		} catch {
+		} catch (e) {
+			// A rejected account has no session left, so there is nothing to keep waiting for
+			if (isAxiosError(e) && e.response?.status === 401) {
+				await goto('/login');
+			}
 			// Keep polling while the session stays valid
 		}
 	}

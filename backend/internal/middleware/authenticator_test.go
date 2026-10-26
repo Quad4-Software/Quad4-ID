@@ -66,6 +66,7 @@ func TestAuthorizationWithRealCredentials(t *testing.T) {
 	disabledAPIKey := createAPIKeyForAuthorizationTest(t, db, disabled, "disabled-raw-api-key")
 	unverifiedAPIKey := createAPIKeyForAuthorizationTest(t, db, unverified, "unverified-raw-api-key")
 	unverifiedAdminAPIKey := createAPIKeyForAuthorizationTest(t, db, unverifiedAdmin, "unverified-admin-raw-api-key")
+	pendingAPIKey := createAPIKeyForAuthorizationTest(t, db, pending, "pending-raw-api-key")
 
 	// Mount one route per kind of requirement
 	// Email verification is required, so unverified regular users only keep the scopes needed to verify their email
@@ -112,6 +113,8 @@ func TestAuthorizationWithRealCredentials(t *testing.T) {
 		{name: "pending user session on apps route", path: "/api/apps", authorization: "Bearer " + pendingSession, status: http.StatusForbidden, errorCode: "user_pending_approval"},
 		{name: "pending user session on authorize route", path: "/api/authorize", authorization: "Bearer " + pendingSession, status: http.StatusForbidden, errorCode: "user_pending_approval"},
 		{name: "pending user session on admin route", path: "/api/admin", authorization: "Bearer " + pendingSession, status: http.StatusForbidden, errorCode: "forbidden"},
+		{name: "pending user API key on account route", path: "/api/account", apiKey: pendingAPIKey, status: http.StatusOK, userID: pending.ID},
+		{name: "pending user API key on apps route", path: "/api/apps", apiKey: pendingAPIKey, status: http.StatusForbidden, errorCode: "user_pending_approval"},
 		{name: "unverified user API key on account route", path: "/api/account", apiKey: unverifiedAPIKey, status: http.StatusOK, userID: unverified.ID},
 		{name: "unverified user API key on apps route", path: "/api/apps", apiKey: unverifiedAPIKey, status: http.StatusForbidden, errorCode: "email_verification_required"},
 		{name: "unverified admin API key on admin route", path: "/api/admin", apiKey: unverifiedAdminAPIKey, status: http.StatusOK, userID: unverifiedAdmin.ID},

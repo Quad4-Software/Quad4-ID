@@ -61,6 +61,29 @@ Run the backend tests with `go test -tags=exclude_frontend,unit ./...` from `bac
 
 To cut a release, bump `.version` and the `version` field in `frontend/package.json` to `X.Y.Z`, commit, tag `vX.Y.Z`, and push the tag. The release workflow builds binaries and the container image and generates release notes from the commit history without usernames or issue numbers.
 
+### Verifying release artifacts
+
+Release images and binaries carry SLSA provenance and keyless Sigstore signatures produced by the release workflow.
+
+Verify the image provenance and signature:
+
+```sh
+gh attestation verify oci://ghcr.io/quad4-software/quad4-id:<tag> -R Quad4-Software/Quad4-ID
+cosign verify ghcr.io/quad4-software/quad4-id:<tag> \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github.com/Quad4-Software/Quad4-ID/\.github/workflows/.*\.yml@refs/(heads/master|tags/v.*)$'
+```
+
+Verify a downloaded binary or checksums.txt, both through its provenance attestation and its signature bundle:
+
+```sh
+gh attestation verify quad4-id_linux_amd64 -R Quad4-Software/Quad4-ID
+cosign verify-blob quad4-id_linux_amd64 \
+  --bundle quad4-id_linux_amd64.sigstore.json \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  --certificate-identity-regexp '^https://github.com/Quad4-Software/Quad4-ID/\.github/workflows/release\.yml@refs/tags/v.*$'
+```
+
 ## License
 
 BSD 2-Clause. See LICENSE.

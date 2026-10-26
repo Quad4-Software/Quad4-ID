@@ -380,9 +380,19 @@ func TestMarkingEmailVerifiedClearsSignupDeadline(t *testing.T) {
 	require.Nil(t, stored.EmailVerificationDeadline)
 }
 
+// countingScimSyncScheduler records how often a SCIM resync was scheduled
+type countingScimSyncScheduler struct {
+	calls int
+}
+
+func (c *countingScimSyncScheduler) ScheduleSync(_ context.Context) {
+	c.calls++
+}
+
 func TestApproveUserClearsPendingApproval(t *testing.T) {
 	db := testutils.NewDatabaseForTest(t)
-	svc := NewUserService(db, nil, nil, nil, nil, nil, nil, nil)
+	scim := &countingScimSyncScheduler{}
+	svc := NewUserService(db, nil, nil, nil, scim, nil, nil, nil)
 
 	pending := model.User{Username: "pending-approval-user", ApprovalPending: true}
 	require.NoError(t, db.Create(&pending).Error)
@@ -394,15 +404,18 @@ func TestApproveUserClearsPendingApproval(t *testing.T) {
 	var stored model.User
 	require.NoError(t, db.First(&stored, "id = ?", pending.ID).Error)
 	require.False(t, stored.ApprovalPending)
+	require.Equal(t, 1, scim.calls)
 
-	// Approving again is a no-op
+	// Approving again is a no-op that does not schedule another SCIM resync
 	user, err = svc.ApproveUser(t.Context(), pending.ID)
 	require.NoError(t, err)
 	require.False(t, user.ApprovalPending)
+	require.Equal(t, 1, scim.calls)
 
 	// Unknown users produce the standard not-found error
 	_, err = svc.ApproveUser(t.Context(), "no-such-user")
 	require.True(t, apperror.IsCode(err, apperror.CodeUserNotFound))
+	require.Equal(t, 1, scim.calls)
 }
 
 func TestListUsersFiltersByApprovalPending(t *testing.T) {

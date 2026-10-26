@@ -105,7 +105,7 @@
 </script>
 
 {#snippet NoteCell({ item }: { item: SignupToken })}
-	<span>{item.note || '—'}</span>
+	<span>{item.note || '-'}</span>
 {/snippet}
 
 {#snippet UsageCell({ item }: { item: SignupToken })}

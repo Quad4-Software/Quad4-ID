@@ -313,7 +313,6 @@ function runImport(pathToFile: string) {
 		'-v',
 		`${pathToFile}:/app/data/quad4-id-export.zip`,
 		containerName,
-		'/app/quad4-id',
 		'import',
 		'--path',
 		'/app/data/quad4-id-export.zip',
@@ -328,7 +327,7 @@ function runImport(pathToFile: string) {
 
 function runImportFromStdin(archive: Buffer): void {
 	runDockerComposeCommandRaw(
-		['run', '--rm', '-T', containerName, '/app/quad4-id', 'import', '--yes', '--path', '-'],
+		['run', '--rm', '-T', containerName, 'import', '--yes', '--path', '-'],
 		{ input: archive }
 	);
 }
@@ -338,7 +337,6 @@ function runExport(outputFile: string): void {
 		'run',
 		'-d',
 		containerName,
-		'/app/quad4-id',
 		'export',
 		'--path',
 		'/app/data/quad4-id-export.zip'
@@ -361,7 +359,6 @@ function runExportToStdout(): Buffer {
 		'--rm',
 		'-T',
 		containerName,
-		'/app/quad4-id',
 		'export',
 		'--path',
 		'-'

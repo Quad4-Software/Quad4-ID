@@ -11,7 +11,7 @@ type signUpDto struct {
 	Email     *string `json:"email" binding:"omitempty,email" unorm:"nfc"`
 	FirstName string  `json:"firstName" binding:"max=50" unorm:"nfc"`
 	LastName  string  `json:"lastName" binding:"max=50" unorm:"nfc"`
-	Token     string  `json:"token"`
+	Token     string  `json:"token" binding:"omitempty,alphanum,max=64"`
 }
 
 type signupTokenCreateDto struct {

@@ -408,7 +408,7 @@ func (s *Service) CreateSignupToken(ctx context.Context, ttl time.Duration, usag
 		UsageCount:      0,
 		UserGroupIDs:    validGroupIDs,
 		RequireApproval: requireApproval,
-		Note:            note,
+		Note:            strings.TrimSpace(note),
 		CreatedAt:       now,
 	}
 

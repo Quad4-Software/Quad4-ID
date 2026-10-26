@@ -824,28 +824,26 @@ func (s *UserService) ResetProfilePicture(ctx context.Context, userID string) er
 // ApproveUser clears a user's pending approval state so they can sign in
 // Approving a user who is not pending is a no-op
 func (s *UserService) ApproveUser(ctx context.Context, userID string) (model.User, error) {
-	user, err := s.getUserInternal(ctx, userID, s.db)
-	if err != nil {
-		return model.User{}, err
-	}
-
-	if user.ApprovalPending {
-		// Bump UpdatedAt so the SCIM sync pushes the now active user
-		user.ApprovalPending = false
-		err = s.db.WithContext(ctx).Model(&model.User{}).Where("id = ?", user.ID).Updates(map[string]any{
+	// The conditional update makes the transition atomic: a concurrent second approve (or an approve racing a delete) cannot act on a stale read
+	// Bump UpdatedAt so the SCIM sync pushes the now active user
+	res := s.db.
+		WithContext(ctx).
+		Model(&model.User{}).
+		Where("id = ? AND approval_pending = ?", userID, true).
+		Updates(map[string]any{
 			"approval_pending": false,
 			"updated_at":       datatype.DateTime(time.Now()),
-		}).Error
-		if err != nil {
-			return model.User{}, err
-		}
+		})
+	if res.Error != nil {
+		return model.User{}, res.Error
 	}
 
-	if s.scimSyncScheduler != nil {
+	// Only a real transition needs a SCIM resync; a repeated approve changed nothing
+	if res.RowsAffected > 0 && s.scimSyncScheduler != nil {
 		s.scimSyncScheduler.ScheduleSync(ctx)
 	}
 
-	return user, nil
+	return s.getUserInternal(ctx, userID, s.db)
 }
 
 // DisableUserInternal disables a user within an existing transaction

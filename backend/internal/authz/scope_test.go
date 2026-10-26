@@ -92,6 +92,37 @@ func TestPrincipalRestrictUnverified(t *testing.T) {
 	})
 }
 
+func TestPrincipalRestrictPending(t *testing.T) {
+	t.Run("keeps only the scopes needed to register a passkey and sign out", func(t *testing.T) {
+		principal := &Principal{Kind: KindSession, Scopes: UserScopes(false, KindSession)}
+		principal.RestrictPending()
+
+		require.Equal(t, NewScopeSet(AccountRead, AccountWrite, AccountPasskeys, AccountPasskeysEnroll, AccountSession), principal.Scopes)
+		require.Equal(t, NewScopeSet(AccountAPIKeys, AccountApps, AccountAuditLogs, AccountAuthorize, AccountAPIKeysCreate), principal.WithheldUntilApproved)
+		require.Empty(t, principal.WithheldUntilVerified)
+	})
+
+	t.Run("never adds scopes the credential kind cannot hold", func(t *testing.T) {
+		principal := &Principal{Kind: KindAPIKey, Scopes: UserScopes(false, KindAPIKey)}
+		principal.RestrictPending()
+
+		require.Equal(t, NewScopeSet(AccountRead, AccountWrite, AccountPasskeys), principal.Scopes)
+		require.False(t, principal.WithheldUntilApproved.Has(AccountAuthorize))
+	})
+
+	t.Run("withholds admin scopes", func(t *testing.T) {
+		principal := &Principal{Kind: KindSession, Scopes: UserScopes(true, KindSession)}
+		principal.RestrictPending()
+
+		for _, entry := range catalog {
+			if entry.category == CategoryAdmin {
+				require.False(t, principal.Scopes.Has(entry.scope), entry.scope)
+				require.True(t, principal.WithheldUntilApproved.Has(entry.scope), entry.scope)
+			}
+		}
+	})
+}
+
 func TestUnknownScope(t *testing.T) {
 	unknown := Scope("unknown:scope")
 	require.False(t, unknown.Known())

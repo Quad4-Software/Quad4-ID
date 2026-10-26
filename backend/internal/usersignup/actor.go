@@ -146,6 +146,7 @@ func (a *signupTokenActor) create(parentCtx context.Context, data actor.Envelope
 }
 
 // consume atomically validates the token and, if it's still usable, records one more use.
+// The actor runtime serializes invocations per actor ID, so concurrent signups on the same multi-use token cannot overshoot the usage limit
 func (a *signupTokenActor) consume(parentCtx context.Context) (signupTokenConsumeResponse, error) {
 	ctx, cancel := context.WithTimeout(parentCtx, 10*time.Second)
 	defer cancel()

@@ -811,9 +811,9 @@ func (s *TestService) SyncLdap(ctx context.Context) error {
 func (s *TestService) SetLdapTestConfig(ctx context.Context) error {
 	err := s.appConfigService.UpdateAppConfigValues(ctx,
 		"ldapUrl", "ldap://lldap:3890",
-		"ldapBindDn", "uid=admin,ou=people,dc=pocket-id,dc=org",
+		"ldapBindDn", "uid=admin,ou=people,dc=quad4-id,dc=test",
 		"ldapBindPassword", "admin_password",
-		"ldapBase", "dc=pocket-id,dc=org",
+		"ldapBase", "dc=quad4-id,dc=test",
 		"ldapUserSearchFilter", "(objectClass=person)",
 		"ldapUserGroupSearchFilter", "(objectClass=groupOfNames)",
 		"ldapSkipCertVerify", "true",
