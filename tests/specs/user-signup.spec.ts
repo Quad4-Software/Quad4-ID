@@ -107,6 +107,8 @@ test.describe('Invite Creation', () => {
 	});
 
 	test('Admin approves a pending user who is then let in', async ({ page, browser }) => {
+		// Two browser contexts make this test slower than the global 10s budget
+		test.slow();
 		await page.goto('/settings/admin/users');
 		await page.getByRole('button', { name: 'Invite', exact: true }).click();
 		await page.getByLabel('I approve each person first').check();
@@ -144,6 +146,8 @@ test.describe('Invite Creation', () => {
 	});
 
 	test('Pending user cannot sign in with a passkey', async ({ page }) => {
+		// Invite creation plus two WebAuthn ceremonies exceed the global 10s budget
+		test.slow();
 		await page.goto('/settings/admin/users');
 		await page.getByRole('button', { name: 'Invite', exact: true }).click();
 		await page.getByLabel('I approve each person first').check();
@@ -160,8 +164,8 @@ test.describe('Invite Creation', () => {
 		await page.waitForURL('/signup/pending', { timeout: 15000 });
 
 		// Register a passkey, then sign out and try to sign back in
-		const util = await passkeyUtil.init(page);
-		await util.addPasskey();
+		// The virtual authenticator stays empty so the Add Passkey click below registers the pending user's own credential
+		await passkeyUtil.init(page);
 		await page.goto('/signup/add-passkey');
 		await page.getByRole('button', { name: 'Add Passkey' }).click();
 		await page.waitForURL('/signup/pending');

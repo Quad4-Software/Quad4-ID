@@ -319,7 +319,8 @@ function runImport(pathToFile: string) {
 		'--yes'
 	]);
 	try {
-		runDockerCommand(['wait', importContainerId]);
+		// docker wait prints the exit code instead of failing, so assert it to surface import errors
+		expect(runDockerCommand(['wait', importContainerId])).toBe('0');
 	} finally {
 		runDockerCommand(['rm', '-f', importContainerId]);
 	}
