@@ -62,6 +62,19 @@ type AppConfigUpdateDto struct {
 	EmailVerification                          string `json:"emailVerification" binding:"required,oneof=disabled optional required,email_verification"`
 	CIMDURLAllowlist                           string `json:"cimdUrlAllowlist" binding:"omitempty,cimd_url_allowlist"`
 	AutoCreateOIDCClientSecret                 string `json:"autoCreateOidcClientSecret" binding:"required,boolean_string"`
+	BackupEnabled                              string `json:"backupEnabled" binding:"omitempty,boolean_string"`
+	BackupDestination                          string `json:"backupDestination" binding:"omitempty,oneof=local s3"`
+	BackupLocalPath                            string `json:"backupLocalPath"`
+	BackupIntervalHours                        string `json:"backupIntervalHours" binding:"omitempty,integer_string"`
+	BackupRetentionCount                       string `json:"backupRetentionCount" binding:"omitempty,integer_string"`
+	BackupEncryptionKey                        string `json:"backupEncryptionKey"`
+	BackupS3Bucket                             string `json:"backupS3Bucket"`
+	BackupS3Region                             string `json:"backupS3Region"`
+	BackupS3Endpoint                           string `json:"backupS3Endpoint"`
+	BackupS3AccessKeyID                        string `json:"backupS3AccessKeyId"`
+	BackupS3SecretAccessKey                    string `json:"backupS3SecretAccessKey"`
+	BackupS3Prefix                             string `json:"backupS3Prefix"`
+	BackupS3ForcePathStyle                     string `json:"backupS3ForcePathStyle" binding:"omitempty,boolean_string"`
 }
 
 func (a AppConfigUpdateDto) Validate() error {

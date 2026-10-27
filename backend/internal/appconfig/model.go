@@ -81,6 +81,20 @@ type AppConfigModel struct {
 	// OIDC
 	CIMDURLAllowlist           AppConfigValue `json:"cimdUrlAllowlist" env:"CIMD_URL_ALLOWLIST"` // JSON-encoded array of strings
 	AutoCreateOIDCClientSecret AppConfigValue `json:"autoCreateOidcClientSecret" env:"AUTO_CREATE_OIDC_CLIENT_SECRET" type:"bool"`
+	// Backup
+	BackupEnabled           AppConfigValue `json:"backupEnabled" env:"BACKUP_ENABLED" type:"bool"`
+	BackupDestination       AppConfigValue `json:"backupDestination" env:"BACKUP_DESTINATION"`
+	BackupLocalPath         AppConfigValue `json:"backupLocalPath" env:"BACKUP_LOCAL_PATH"`
+	BackupIntervalHours     AppConfigValue `json:"backupIntervalHours" env:"BACKUP_INTERVAL_HOURS" type:"int"`
+	BackupRetentionCount    AppConfigValue `json:"backupRetentionCount" env:"BACKUP_RETENTION_COUNT" type:"int"`
+	BackupEncryptionKey     AppConfigValue `json:"backupEncryptionKey" env:"BACKUP_ENCRYPTION_KEY" sensitive:"true"`
+	BackupS3Bucket          AppConfigValue `json:"backupS3Bucket" env:"BACKUP_S3_BUCKET"`
+	BackupS3Region          AppConfigValue `json:"backupS3Region" env:"BACKUP_S3_REGION"`
+	BackupS3Endpoint        AppConfigValue `json:"backupS3Endpoint" env:"BACKUP_S3_ENDPOINT"`
+	BackupS3AccessKeyID     AppConfigValue `json:"backupS3AccessKeyId" env:"BACKUP_S3_ACCESS_KEY_ID"`
+	BackupS3SecretAccessKey AppConfigValue `json:"backupS3SecretAccessKey" env:"BACKUP_S3_SECRET_ACCESS_KEY" sensitive:"true"`
+	BackupS3Prefix          AppConfigValue `json:"backupS3Prefix" env:"BACKUP_S3_PREFIX"`
+	BackupS3ForcePathStyle  AppConfigValue `json:"backupS3ForcePathStyle" env:"BACKUP_S3_FORCE_PATH_STYLE" type:"bool"`
 }
 
 // appConfigEnvName returns the explicit environment variable name for a JSON configuration field
@@ -187,6 +201,13 @@ func getDefaultConfig() *AppConfigModel {
 		// OIDC
 		CIMDURLAllowlist:           "[]",
 		AutoCreateOIDCClientSecret: "true",
+		// Backup
+		BackupEnabled:          "false",
+		BackupDestination:      "local",
+		BackupLocalPath:        "data/backups",
+		BackupIntervalHours:    "24",
+		BackupRetentionCount:   "14",
+		BackupS3ForcePathStyle: "false",
 	}
 }
 

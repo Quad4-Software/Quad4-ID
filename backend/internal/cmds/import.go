@@ -6,15 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/italypaleale/francis/clusteradmin"
 	"github.com/italypaleale/francis/components"
 	"github.com/spf13/cobra"
 
+	"github.com/pocket-id/pocket-id/backend/internal/backup"
 	"github.com/pocket-id/pocket-id/backend/internal/bootstrap"
 	"github.com/pocket-id/pocket-id/backend/internal/common"
 	"github.com/pocket-id/pocket-id/backend/internal/service"
@@ -49,8 +47,7 @@ func init() {
 func runImport(ctx context.Context, flags importFlags) error {
 	// A standalone Francis runtime owns the actor data, so this import only covers what lives in Quad4 ID's own database
 	// Nothing here can limit the replicas either, since they are hosts of the runtime's cluster rather than of a cluster in this database
-	embeddedRuntime := common.EnvConfig.HasEmbeddedFrancisRuntime()
-	if !embeddedRuntime {
+	if !common.EnvConfig.HasEmbeddedFrancisRuntime() {
 		printRemoteActorDataNotice(
 			"The actor data will NOT be restored, and Quad4 ID replicas will NOT be stopped for you",
 			"stop every replica first, then restore the runtime with: francis runtime restore -f actors.bin",
@@ -78,17 +75,27 @@ func runImport(ctx context.Context, flags importFlags) error {
 		zipReader, cleanup, err = readZipFromStdin()
 		defer cleanup()
 	} else {
-		zipReader, err = zip.OpenReader(flags.Path)
+		err = rejectEncryptedBackupFile(flags.Path)
+		if err == nil {
+			zipReader, err = zip.OpenReader(flags.Path)
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("failed to open zip: %w", err)
 	}
 	defer zipReader.Close()
 
+	return runImportReader(ctx, &zipReader.Reader, flags)
+}
+
+// runImportReader performs the import from an already-open ZIP archive
+func runImportReader(ctx context.Context, zipReader *zip.Reader, flags importFlags) error {
+	embeddedRuntime := common.EnvConfig.HasEmbeddedFrancisRuntime()
+
 	// An archive carrying the actor data was taken from a deployment with an embedded runtime, and there is nowhere to put that data here
 	// Restoring only the Quad4 ID half of it would leave the runtime holding actor state from a different deployment, so refuse rather than half-restore
 	if !embeddedRuntime {
-		err = ensureNoActorsBackup(&zipReader.Reader)
+		err := bootstrap.EnsureNoActorsBackup(zipReader)
 		if err != nil {
 			return err
 		}
@@ -159,7 +166,7 @@ func runImport(ctx context.Context, flags importFlags) error {
 	importService := service.NewImportService(db, storage, actorsProvider)
 
 	// Load from ZIP
-	err = importService.ImportFromZip(importCtx, &zipReader.Reader)
+	err = importService.ImportFromZip(importCtx, zipReader)
 	if err != nil {
 		return fmt.Errorf("failed to import data from zip: %w", err)
 	}
@@ -168,46 +175,38 @@ func runImport(ctx context.Context, flags importFlags) error {
 	return nil
 }
 
-// acquireExclusiveAccess takes an exclusive-access lease on the cluster so the import can safely overwrite the database.
-//
-// It returns a release function that must be called once the import is done, and a channel that is closed if the lease is lost while it is held.
+// acquireExclusiveAccess wraps bootstrap.AcquireExclusiveAccess with CLI-facing error messages
 func acquireExclusiveAccess(ctx context.Context, providerOpts components.ProviderOptions, force bool) (release func(), lost <-chan struct{}, err error) {
-	// New initializes the provider, applying the actor host's schema migrations, so this also works against a brand-new (empty) database
-	admin, err := clusteradmin.New(ctx, providerOpts, clusteradmin.Options{
-		// Match the actor host so the admin waits the right amount of time for hosts to drain
-		HostHealthCheckDeadline: bootstrap.ActorsHostHealthCheckDeadline(common.EnvConfig.HAEnabled),
-		Logger:                  slog.Default(),
-	})
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create cluster admin: %w", err)
+	release, lost, err = bootstrap.AcquireExclusiveAccess(ctx, providerOpts, force)
+	if err == nil {
+		return release, lost, nil
 	}
 
-	lost, err = admin.AcquireExclusive(ctx, clusteradmin.AcquireOptions{Force: force})
+	switch {
+	case errors.Is(err, components.ErrHostsConnected):
+		//nolint:staticcheck
+		return nil, nil, errors.New("Quad4 ID must be stopped before importing data - please stop the running instance or run with --forcefully-acquire-lock to terminate the other instance")
+	case errors.Is(err, components.ErrExclusiveHeld):
+		return nil, nil, errors.New("another exclusive operation, such as another import, is already in progress; please wait for it to complete and try again")
+	default:
+		return nil, nil, fmt.Errorf("failed to acquire exclusive access: %w", err)
+	}
+}
+
+// rejectEncryptedBackupFile points the user at 'backup restore' when the file is an encrypted backup archive, which the plain import cannot read
+func rejectEncryptedBackupFile(path string) error {
+	f, err := os.Open(path)
 	if err != nil {
-		_ = admin.Close()
-		switch {
-		case errors.Is(err, components.ErrHostsConnected):
-			//nolint:staticcheck
-			return nil, nil, errors.New("Quad4 ID must be stopped before importing data - please stop the running instance or run with --forcefully-acquire-lock to terminate the other instance")
-		case errors.Is(err, components.ErrExclusiveHeld):
-			return nil, nil, errors.New("another exclusive operation, such as another import, is already in progress; please wait for it to complete and try again")
-		default:
-			return nil, nil, fmt.Errorf("failed to acquire exclusive access: %w", err)
-		}
+		return nil
+	}
+	defer f.Close()
+
+	_, encrypted, err := backup.PeekEncrypted(f)
+	if err != nil || !encrypted {
+		return nil
 	}
 
-	release = func() {
-		// The import preserves the actor host's "francis_" tables, including the lease row, so the lease must be released explicitly
-		// Detach from ctx so the release still runs even if the import was canceled
-		releaseCtx, cancelRelease := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
-		defer cancelRelease()
-		rErr := admin.ReleaseExclusive(releaseCtx)
-		if rErr != nil {
-			slog.WarnContext(ctx, "Failed to release exclusive access", slog.Any("error", rErr))
-		}
-		_ = admin.Close()
-	}
-	return release, lost, nil
+	return errors.New("this backup archive is encrypted: restore it with 'quad4-id backup restore --file " + path + " --encryption-key <key>' instead")
 }
 
 func askForConfirmation() (bool, error) {

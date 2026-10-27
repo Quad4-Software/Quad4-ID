@@ -60,6 +60,20 @@ export type AllAppConfig = AppConfig & {
 	// OIDC
 	cimdUrlAllowlist: string[];
 	autoCreateOidcClientSecret: boolean;
+	// Backup
+	backupEnabled: boolean;
+	backupDestination: 'local' | 's3';
+	backupLocalPath: string;
+	backupIntervalHours: number;
+	backupRetentionCount: number;
+	backupEncryptionKey: string;
+	backupS3Bucket: string;
+	backupS3Region: string;
+	backupS3Endpoint: string;
+	backupS3AccessKeyId: string;
+	backupS3SecretAccessKey: string;
+	backupS3Prefix: string;
+	backupS3ForcePathStyle: boolean;
 };
 
 export type AppConfigRawResponse = {

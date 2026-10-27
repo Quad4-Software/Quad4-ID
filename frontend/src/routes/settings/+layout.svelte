@@ -47,7 +47,8 @@
 		{
 			href: '/settings/admin/application-configuration',
 			label: m.application_configuration()
-		}
+		},
+		{ href: '/settings/admin/backups', label: m.backups() }
 	];
 
 	if (user?.isAdmin || $userStore?.isAdmin) {

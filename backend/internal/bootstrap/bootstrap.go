@@ -12,12 +12,16 @@ import (
 	"github.com/italypaleale/francis/components"
 	francishost "github.com/italypaleale/francis/host"
 	"github.com/italypaleale/go-kit/servicerunner"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"gorm.io/gorm"
 
 	"github.com/pocket-id/pocket-id/backend/internal/common"
 	"github.com/pocket-id/pocket-id/backend/internal/instanceid"
+	"github.com/pocket-id/pocket-id/backend/internal/job"
 	"github.com/pocket-id/pocket-id/backend/internal/outbound"
+	"github.com/pocket-id/pocket-id/backend/internal/service"
 	"github.com/pocket-id/pocket-id/backend/internal/storage"
+	"github.com/pocket-id/pocket-id/backend/internal/utils"
 )
 
 func Bootstrap(ctx context.Context) error {
@@ -42,7 +46,7 @@ func Bootstrap(ctx context.Context) error {
 	}
 
 	// Init database
-	db, pg, err := NewDatabase(ctx)
+	db, pg, err := ConnectDatabase(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to initialize database: %w", err)
 	}
@@ -53,14 +57,12 @@ func Bootstrap(ctx context.Context) error {
 		}()
 	}
 
-	// Load the instance ID
-	// This is stored in the "kv" table, and generated on first startup
-	instanceID, err := instanceid.Load(ctx, db)
+	sqlDb, err := db.DB()
 	if err != nil {
-		return fmt.Errorf("failed to initialize instance ID: %w", err)
+		return fmt.Errorf("failed to get sql.DB: %w", err)
 	}
 
-	// Init storage
+	// Init storage before a staged restore runs so uploaded files can be written back
 	fileStorage, err := InitStorage(ctx, db)
 	if err != nil {
 		return fmt.Errorf("failed to initialize file storage (backend: %s): %w", common.EnvConfig.FileBackend, err)
@@ -74,6 +76,22 @@ func Bootstrap(ctx context.Context) error {
 		}
 	}()
 
+	// A restore staged through the admin UI runs before migrations, so the restored schema is migrated to the current version next
+	applyPendingRestore(ctx, db, pg, fileStorage)
+
+	// Run migrations
+	err = utils.MigrateDatabase(ctx, sqlDb)
+	if err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
+	}
+
+	// Load the instance ID
+	// This is stored in the "kv" table, and generated on first startup
+	instanceID, err := instanceid.Load(ctx, db)
+	if err != nil {
+		return fmt.Errorf("failed to initialize instance ID: %w", err)
+	}
+
 	// Init application images
 	imageExtensions, err := initApplicationImages(ctx, fileStorage)
 	if err != nil {
@@ -82,6 +100,7 @@ func Bootstrap(ctx context.Context) error {
 
 	// Init the actors
 	// The actor host is created and started before the services, so services can depend on it once it's ready
+	backupJob := job.NewBackupJob()
 	actorsOpts := NewActorsOpts{
 		Postgres: pg,
 
@@ -90,6 +109,7 @@ func Bootstrap(ctx context.Context) error {
 		HttpClient:  httpClient,
 		DB:          db,
 		FileStorage: fileStorage,
+		BackupJob:   backupJob,
 	}
 	actors, rateLimitServices, err := NewActors(actorsOpts)
 	if err != nil {
@@ -105,6 +125,10 @@ func Bootstrap(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize services: %w", err)
 	}
+
+	// Create the backup service and hand it to the cron actor, which only starts running jobs once the actor host is up
+	svc.backupService = service.NewBackupService(db, fileStorage, svc.appConfigService, NewActorsBackupProviderFactory(db, pg))
+	backupJob.SetService(svc.backupService)
 
 	// Migrate the pre-actor signup tokens into their actors, once the actor host is ready
 	services = append(services, actorsReady.Await(svc.userSignUpModule.RunSignupTokenMigration))
@@ -140,6 +164,21 @@ func Bootstrap(ctx context.Context) error {
 	shutdowns.Run(ctx)
 
 	return nil
+}
+
+// NewActorsBackupProviderFactory returns a factory that builds a provider for the actor host's data on demand
+// With a standalone Francis runtime the actor data is unreachable from here, so the factory yields nil providers and backups simply leave it out
+func NewActorsBackupProviderFactory(db *gorm.DB, pg *pgxpool.Pool) service.ActorsBackupProviderFactory {
+	return func(ctx context.Context) (service.ActorsBackupHandle, error) {
+		if !common.EnvConfig.HasEmbeddedFrancisRuntime() {
+			return nil, nil
+		}
+		providerOpts, err := ActorsProviderOptions(db, pg)
+		if err != nil {
+			return nil, err
+		}
+		return NewActorsBackupProvider(ctx, providerOpts)
+	}
 }
 
 // actorsRunServiceFn wraps the actor host's Run method in a background service and returns a "ready" signal that other services can wait on

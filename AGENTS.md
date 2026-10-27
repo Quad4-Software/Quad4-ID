@@ -58,6 +58,19 @@ token, OIDC grants) rejects them with `user_pending_approval`, SCIM reports them
 SPA keeps them on `/signup/pending`. Admins approve via `POST /api/users/:id/approve` or reject by
 deleting the user. Rejecting an invite is deleting its token.
 
+## Backups
+
+Backups reuse the export pipeline: `internal/service/backup_service.go` streams the same ZIP
+that `quad4-id export` produces into a backup destination (local dir or S3, both expressed as
+`storage.FileStorage`), optionally encrypting it with the chunked AES-256-GCM format in
+`internal/backup`. Settings live in the app config as `BACKUP_*` keys, so env vars and the
+admin UI (`/settings/admin/backups`) configure the same thing. The `AutomaticBackup` cron actor
+wakes hourly and backs up when the newest archive is older than `BACKUP_INTERVAL_HOURS`, then
+prunes to `BACKUP_RETENTION_COUNT`. Restores are destructive and need the instance stopped: the
+CLI is `quad4-id backup restore --file|--name`, and the UI stages archives (passphrase sealed
+with `ENCRYPTION_KEY`) that `Bootstrap` applies before migrations run. `backup create/list/
+delete/download` round out the CLI.
+
 ## Theming
 
 Theme tokens live in frontend/src/app.css as hex values behind the shadcn variable names for

@@ -43,6 +43,7 @@ type services struct {
 	customClaimService *service.CustomClaimService
 	oidcService        *service.OidcService
 	userGroupService   *service.UserGroupService
+	backupService      *service.BackupService
 	fileStorage        storage.FileStorage
 
 	apiKeyModule            *apikey.Module

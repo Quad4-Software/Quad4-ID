@@ -42,6 +42,7 @@ type NewActorsOpts struct {
 	HttpClient  *http.Client
 	DB          *gorm.DB
 	FileStorage storage.FileStorage
+	BackupJob   *job.BackupJob
 }
 
 func NewActors(o NewActorsOpts) (h francishost.Host, rateLimitServices map[string]*ratelimit.RateLimitService, err error) {
@@ -324,6 +325,18 @@ func (o *NewActorsOpts) registerCronJobs(host francishost.Host) (err error) {
 		err = host.RegisterBuiltInActor(j)
 		if err != nil {
 			return fmt.Errorf("error registering built-in actor for cleanup job: %w", err)
+		}
+	}
+
+	// Register the scheduled backup job
+	if o.BackupJob != nil {
+		backupCron, err := o.BackupJob.CronJob()
+		if err != nil {
+			return fmt.Errorf("failed to get backup cron job: %w", err)
+		}
+		err = host.RegisterBuiltInActor(backupCron)
+		if err != nil {
+			return fmt.Errorf("error registering built-in actor for backup job: %w", err)
 		}
 	}
 
