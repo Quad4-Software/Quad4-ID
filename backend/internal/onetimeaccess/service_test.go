@@ -214,10 +214,13 @@ func TestExchangeTokenRejectsDisabledUser(t *testing.T) {
 	require.Empty(t, auditLog.notifications)
 }
 
-func (f *fakeAuditLogger) CreateSignIn(ctx context.Context, event auditlogs.Event, ipAddress, userAgent, userID, browserToken string, tx *gorm.DB, mode appconfig.AppConfigValue) auditlogs.SignInResult {
+func (f *fakeAuditLogger) CreateSignIn(ctx context.Context, event auditlogs.Event, ipAddress, userAgent, userID, browserToken string, tx *gorm.DB, dbConfig *appconfig.AppConfigModel) auditlogs.SignInResult {
 	entry, created := f.Create(ctx, event, ipAddress, userAgent, userID, auditlogs.Data{}, tx)
 	entry.Event = event
-	return auditlogs.SignInResult{AuditLog: entry, Created: created, Notify: mode != appconfig.LoginNotificationDisabled, KnownBrowserToken: "recognized-browser"}
+	return auditlogs.SignInResult{AuditLog: entry, Created: created, Notify: dbConfig.EmailLoginNotificationMode != appconfig.LoginNotificationDisabled, KnownBrowserToken: "recognized-browser"}
+}
+
+func (f *fakeAuditLogger) RecordBlockedSignIn(ctx context.Context, result auditlogs.SignInResult) {
 }
 
 func (f *fakeAuditLogger) SendSignInNotification(_ context.Context, result auditlogs.SignInResult) {

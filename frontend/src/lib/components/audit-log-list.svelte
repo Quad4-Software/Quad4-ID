@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BrowserIcon from '#lib/components/browser-icon.svelte';
 	import AdvancedTable from '#lib/components/table/advanced-table.svelte';
 	import { Badge } from '#lib/components/ui/badge/index.ts';
 	import { m } from '#lib/paraglide/messages.js';
@@ -57,7 +58,8 @@
 		{
 			label: m.device(),
 			column: 'device',
-			sortable: true
+			sortable: true,
+			cell: DeviceCell
 		},
 		{
 			label: m.client(),
@@ -101,9 +103,21 @@
 </script>
 
 {#snippet EventCell({ item }: { item: AuditLog })}
-	<Badge class="rounded-full" variant="outline">
-		{translateAuditLogEvent(item.event)}
-	</Badge>
+	<span class="flex items-center gap-1.5">
+		<Badge class="rounded-full" variant="outline">
+			{translateAuditLogEvent(item.event)}
+		</Badge>
+		{#if item.data?.anomalies}
+			<Badge class="rounded-full" variant="destructive">{m.anomalous()}</Badge>
+		{/if}
+	</span>
+{/snippet}
+
+{#snippet DeviceCell({ item }: { item: AuditLog })}
+	<span class="flex items-center gap-2">
+		<BrowserIcon device={item.device} />
+		{item.device}
+	</span>
 {/snippet}
 
 <AdvancedTable
@@ -120,3 +134,4 @@
 	withoutSearch
 	{columns}
 />
+<p class="text-muted-foreground mt-3 text-xs">{m.geolite_attribution()}</p>

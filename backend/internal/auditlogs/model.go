@@ -3,6 +3,7 @@ package auditlogs
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"time"
 
 	"github.com/pocket-id/pocket-id/backend/internal/model"
 	"github.com/pocket-id/pocket-id/backend/internal/utils"
@@ -38,7 +39,20 @@ const (
 	EventNewDeviceCodeAuthorization Event = "NEW_DEVICE_CODE_AUTHORIZATION"
 	EventPasskeyAdded               Event = "PASSKEY_ADDED"
 	EventPasskeyRemoved             Event = "PASSKEY_REMOVED"
+	EventAnomalousSignInBlocked     Event = "ANOMALOUS_SIGN_IN_BLOCKED"
 )
+
+// DataKeyAnomalies records the anomaly labels that fired for a sign-in row
+const DataKeyAnomalies = "anomalies"
+
+// AnomalyNewCountry flags a sign-in from a country the account has never used before
+const AnomalyNewCountry = "new_country"
+
+// AnomalyImpossibleTravel flags a sign-in from a different country too soon after the previous one
+const AnomalyImpossibleTravel = "impossible_travel"
+
+// impossibleTravelWindow bounds how close together two sign-ins from different countries can be before the travel is physically implausible
+const impossibleTravelWindow = 3 * time.Hour
 
 // Scan and Value methods for GORM to handle the custom type
 

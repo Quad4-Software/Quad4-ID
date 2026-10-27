@@ -53,9 +53,9 @@
 {:else if isDesktop.current}
 	<div
 		in:fade={{ duration: 150 }}
-		class="bg-background dark:starfield relative flex h-screen w-full items-center overflow-hidden text-center {backgroundImageExists
-			? 'justify-start'
-			: 'justify-center'}"
+		class="bg-background dark:starfield relative flex h-screen w-full items-center overflow-hidden text-center {$appConfigStore.disableAnimations
+			? ''
+			: 'starfield-dynamic'} {backgroundImageExists ? 'justify-start' : 'justify-center'}"
 	>
 		<div
 			class="relative z-10 flex h-full w-full max-w-[650px] p-16 2xl:max-w-[800px] {cn(
@@ -98,6 +98,7 @@
 	<div
 		class={cn(
 			'bg-background dark:starfield flex min-h-dvh items-center justify-center bg-cover bg-center text-center',
+			!$appConfigStore.disableAnimations && 'starfield-dynamic',
 			backgroundImageExists && 'bg-none!'
 		)}
 		style={backgroundImageExists ? `background-image: url(${cachedBackgroundImage.getUrl()});` : ''}

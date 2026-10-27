@@ -71,6 +71,16 @@ CLI is `quad4-id backup restore --file|--name`, and the UI stages archives (pass
 with `ENCRYPTION_KEY`) that `Bootstrap` applies before migrations run. `backup create/list/
 delete/download` round out the CLI.
 
+## Sign-in security and audit
+
+Audit logs resolve IPs to country and city via GeoLite2 (MAXMIND_LICENSE_KEY downloads the
+database, or drop the file into the data directory for air-gapped setups). MaxMind attribution
+is shown under the audit log table as required by the GeoLite2 license. Sign-in anomaly
+detection (SIGN_IN_ANOMALY_MODE, or the Passkeys settings form) flags sign-ins from a country
+the account has never used or from a different country within 3 hours of the previous one.
+"detect" annotates the audit row and emails the user, "prevent" refuses the sign-in and
+records an ANOMALOUS_SIGN_IN_BLOCKED event after the login transaction rolls back.
+
 ## Theming
 
 Theme tokens live in frontend/src/app.css as hex values behind the shadcn variable names for

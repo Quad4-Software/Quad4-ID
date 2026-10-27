@@ -75,7 +75,7 @@ func (h *handler) exchangeRequest(c *gin.Context) error {
 	deviceToken, _ := c.Cookie(cookie.DeviceLoginTokenCookieName)
 	sessionDuration := dbConfig.SessionDuration.AsDurationMinutes()
 	browserToken, _ := c.Cookie(cookie.KnownBrowserCookieName)
-	user, tokens, status, err := h.service.Exchange(c.Request.Context(), requestID, deviceToken, c.ClientIP(), c.Request.UserAgent(), browserToken, sessionDuration, dbConfig.EmailLoginNotificationMode)
+	user, tokens, status, err := h.service.Exchange(c.Request.Context(), requestID, deviceToken, c.ClientIP(), c.Request.UserAgent(), browserToken, sessionDuration, dbConfig)
 	if err != nil {
 		if c.Request.Context().Err() != nil {
 			// Context canceled = the client stopped the request

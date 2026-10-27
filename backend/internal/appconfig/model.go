@@ -26,6 +26,12 @@ const (
 	EmailVerificationRequired = "required"
 )
 
+const (
+	SignInAnomalyDisabled = "disabled"
+	SignInAnomalyDetect   = "detect"
+	SignInAnomalyPrevent  = "prevent"
+)
+
 type AppConfigModel struct {
 	// General
 	AppName             AppConfigValue `json:"appName" env:"APP_NAME" public:"true"`
@@ -53,6 +59,8 @@ type AppConfigModel struct {
 	EmailOneTimeAccessAsAdminEnabled           AppConfigValue `json:"emailOneTimeAccessAsAdminEnabled" env:"EMAIL_ONE_TIME_ACCESS_AS_ADMIN_ENABLED" type:"bool" public:"true"`
 	EmailApiKeyExpirationEnabled               AppConfigValue `json:"emailApiKeyExpirationEnabled" env:"EMAIL_API_KEY_EXPIRATION_ENABLED" type:"bool"`
 	EmailVerification                          AppConfigValue `json:"emailVerification" env:"EMAIL_VERIFICATION" public:"true"`
+	// Sign-in security
+	SignInAnomalyMode AppConfigValue `json:"signInAnomalyMode" env:"SIGN_IN_ANOMALY_MODE"`
 	// LDAP
 	LdapEnabled                        AppConfigValue `json:"ldapEnabled" env:"LDAP_ENABLED" type:"bool" public:"true"`
 	LdapUrl                            AppConfigValue `json:"ldapUrl" env:"LDAP_URL"`
@@ -158,7 +166,7 @@ func getDefaultConfig() *AppConfigModel {
 		AllowUserSignups:          "disabled",
 		SignupDefaultUserGroupIDs: "[]",
 		SignupDefaultCustomClaims: "[]",
-		AccentColor:               "default",
+		AccentColor:               "#dc2626",
 		// Email
 		RequireUserEmail:           "true",
 		SmtpHost:                   "",
@@ -173,6 +181,8 @@ func getDefaultConfig() *AppConfigModel {
 		EmailOneTimeAccessAsAdminEnabled:           "false",
 		EmailApiKeyExpirationEnabled:               "false",
 		EmailVerification:                          EmailVerificationDisabled,
+		// Sign-in security
+		SignInAnomalyMode: SignInAnomalyDisabled,
 		// LDAP
 		LdapEnabled:                        "false",
 		LdapUrl:                            "",

@@ -10,7 +10,8 @@ export const eventTypes: Record<string, string> = {
 	DEVICE_CODE_AUTHORIZATION: m.audit_event_device_code_authorization(),
 	NEW_DEVICE_CODE_AUTHORIZATION: m.audit_event_new_device_code_authorization(),
 	PASSKEY_ADDED: m.audit_event_passkey_added(),
-	PASSKEY_REMOVED: m.audit_event_passkey_removed()
+	PASSKEY_REMOVED: m.audit_event_passkey_removed(),
+	ANOMALOUS_SIGN_IN_BLOCKED: m.audit_event_anomalous_sign_in_blocked()
 };
 
 /**

@@ -322,9 +322,16 @@ func (s *Service) VerifyLogin(ctx context.Context, dbConfig *appconfig.AppConfig
 	}
 
 	// Prepare browser recognition and the notification within the login transaction
-	signIn := s.auditLog.CreateSignIn(ctx, auditlogs.EventSignIn, ipAddress, userAgent, user.ID, browserToken, tx, dbConfig.EmailLoginNotificationMode)
+	signIn := s.auditLog.CreateSignIn(ctx, auditlogs.EventSignIn, ipAddress, userAgent, user.ID, browserToken, tx, dbConfig)
 	if !signIn.Created {
 		return model.User{}, model.LoginTokens{}, errors.New("failed to create sign-in audit log")
+	}
+	if signIn.Blocked {
+		// Roll back before recording so the audit write does not deadlock against the open transaction
+		tx.Rollback()
+		s.auditLog.RecordBlockedSignIn(ctx, signIn)
+		s.auditLog.SendSignInNotification(ctx, signIn)
+		return model.User{}, model.LoginTokens{}, apperror.SignInBlocked()
 	}
 
 	err = tx.Commit().Error

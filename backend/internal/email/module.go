@@ -124,6 +124,20 @@ func (m *Module) SendNewLogin(ctx context.Context, dbConfig *appconfig.AppConfig
 	})
 }
 
+func (m *Module) SendBlockedLogin(ctx context.Context, dbConfig *appconfig.AppConfigModel, userFullName, userEmail, ipAddress, country, city, device, method string, dateTime time.Time) error {
+	return send(ctx, m, dbConfig, address{
+		name:  userFullName,
+		email: userEmail,
+	}, signInBlockedTemplate, &newLoginTemplateData{
+		IPAddress: ipAddress,
+		Country:   country,
+		City:      city,
+		Device:    device,
+		Method:    method,
+		DateTime:  dateTime,
+	})
+}
+
 func (m *Module) SendAPIKeyExpiringSoon(ctx context.Context, dbConfig *appconfig.AppConfigModel, userFullName, userEmail, firstName, apiKeyName string, expiresAt time.Time) error {
 	return send(ctx, m, dbConfig, address{
 		name:  userFullName,

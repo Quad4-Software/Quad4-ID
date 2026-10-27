@@ -240,6 +240,10 @@ func UserPendingApproval() *Error {
 	return New(CodeUserPendingApproval, http.StatusForbidden, "User account is waiting for approval")
 }
 
+func SignInBlocked() *Error {
+	return New(CodeSignInBlocked, http.StatusForbidden, "Sign-in blocked because of unusual sign-in activity")
+}
+
 func ValidationMessage(message string) *Error {
 	return New(CodeValidationFailed, http.StatusBadRequest, message)
 }

@@ -32,6 +32,7 @@ export type AllAppConfig = AppConfig & {
 	smtpTls: 'none' | 'starttls' | 'tls';
 	smtpSkipCertVerify: boolean;
 	emailLoginNotificationMode: 'disabled' | 'always' | 'ipAndUserAgent' | 'browserRecognition';
+	signInAnomalyMode: 'disabled' | 'detect' | 'prevent';
 	emailApiKeyExpirationEnabled: boolean;
 	// LDAP
 	ldapUrl: string;

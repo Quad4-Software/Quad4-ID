@@ -20,6 +20,13 @@ var oneTimeAccessTemplate = template[oneTimeAccessTemplateData]{
 	},
 }
 
+var signInBlockedTemplate = template[newLoginTemplateData]{
+	path: "sign-in-blocked",
+	title: func(data *templateData[newLoginTemplateData]) string {
+		return "Sign-in to your " + data.AppName + " account was blocked"
+	},
+}
+
 var testTemplate = template[struct{}]{
 	path: "test",
 	title: func(_ *templateData[struct{}]) string {
@@ -70,6 +77,7 @@ type emailVerificationTemplateData struct {
 
 var templatePaths = []string{
 	newLoginTemplate.path,
+	signInBlockedTemplate.path,
 	oneTimeAccessTemplate.path,
 	testTemplate.path,
 	apiKeyExpiringSoonTemplate.path,

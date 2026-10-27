@@ -60,6 +60,7 @@ type AppConfigUpdateDto struct {
 	EmailLoginNotificationMode                 string `json:"emailLoginNotificationMode" binding:"required,oneof=disabled always ipAndUserAgent browserRecognition"`
 	EmailApiKeyExpirationEnabled               string `json:"emailApiKeyExpirationEnabled" binding:"required,boolean_string"`
 	EmailVerification                          string `json:"emailVerification" binding:"required,oneof=disabled optional required,email_verification"`
+	SignInAnomalyMode                          string `json:"signInAnomalyMode" binding:"omitempty,oneof=disabled detect prevent"`
 	CIMDURLAllowlist                           string `json:"cimdUrlAllowlist" binding:"omitempty,cimd_url_allowlist"`
 	AutoCreateOIDCClientSecret                 string `json:"autoCreateOidcClientSecret" binding:"required,boolean_string"`
 	BackupEnabled                              string `json:"backupEnabled" binding:"omitempty,boolean_string"`

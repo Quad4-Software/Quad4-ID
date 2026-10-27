@@ -155,7 +155,7 @@ func (s *Service) Decide(ctx context.Context, code, decision, userID, reauthenti
 	return actorResultError(result.Code)
 }
 
-func (s *Service) Exchange(ctx context.Context, requestID, deviceToken, ipAddress, userAgent, browserToken string, sessionDuration time.Duration, notificationMode appconfig.AppConfigValue) (dto.UserDto, model.LoginTokens, RequestStatus, error) {
+func (s *Service) Exchange(ctx context.Context, requestID, deviceToken, ipAddress, userAgent, browserToken string, sessionDuration time.Duration, dbConfig *appconfig.AppConfigModel) (dto.UserDto, model.LoginTokens, RequestStatus, error) {
 	if requestID == "" || deviceToken == "" || sessionDuration <= 0 {
 		return dto.UserDto{}, model.LoginTokens{}, "", apperror.DeviceLoginRequestInvalidOrExpired()
 	}
@@ -206,9 +206,14 @@ func (s *Service) Exchange(ctx context.Context, requestID, deviceToken, ipAddres
 			}
 
 			// Record the successful remote sign-in after the request has been consumed
-			signIn := s.auditLog.CreateSignIn(ctx, auditlogs.EventRemoteSignIn, ipAddress, userAgent, user.ID, browserToken, s.db, notificationMode)
+			signIn := s.auditLog.CreateSignIn(ctx, auditlogs.EventRemoteSignIn, ipAddress, userAgent, user.ID, browserToken, s.db, dbConfig)
 			if !signIn.Created {
 				return dto.UserDto{}, model.LoginTokens{}, consume.Status, errors.New("failed to create device login audit log")
+			}
+			if signIn.Blocked {
+				s.auditLog.RecordBlockedSignIn(ctx, signIn)
+				s.auditLog.SendSignInNotification(ctx, signIn)
+				return dto.UserDto{}, model.LoginTokens{}, consume.Status, apperror.SignInBlocked()
 			}
 
 			s.auditLog.SendSignInNotification(ctx, signIn)

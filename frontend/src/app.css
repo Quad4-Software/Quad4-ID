@@ -549,3 +549,75 @@
 		background-image: none;
 	}
 }
+
+/* Dynamic starfield layers for the dark auth surfaces, drifting stars and a slow nebula glow tinted by the accent color */
+.starfield-dynamic {
+	position: relative;
+	isolation: isolate;
+}
+.starfield-dynamic::before,
+.starfield-dynamic::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+}
+.starfield-dynamic::before {
+	z-index: 1;
+	background-image:
+		radial-gradient(1px 1px at 12% 78%, rgb(255 255 255 / 0.55) 50%, transparent 51%),
+		radial-gradient(1.5px 1.5px at 28% 18%, rgb(255 255 255 / 0.4) 50%, transparent 51%),
+		radial-gradient(1px 1px at 52% 42%, rgb(255 255 255 / 0.6) 50%, transparent 51%),
+		radial-gradient(1.5px 1.5px at 74% 62%, rgb(255 255 255 / 0.4) 50%, transparent 51%),
+		radial-gradient(1px 1px at 90% 12%, rgb(255 255 255 / 0.55) 50%, transparent 51%),
+		radial-gradient(1px 1px at 38% 88%, rgb(255 255 255 / 0.45) 50%, transparent 51%);
+	animation:
+		starfield-drift 240s linear infinite,
+		starfield-twinkle 9s ease-in-out infinite;
+}
+.starfield-dynamic::after {
+	z-index: 1;
+	background-image:
+		radial-gradient(
+			42% 55% at 78% 18%,
+			color-mix(in oklab, var(--primary) 22%, transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			50% 60% at 18% 85%,
+			color-mix(in oklab, var(--primary) 14%, transparent),
+			transparent 70%
+		);
+	animation: nebula-drift 60s ease-in-out infinite alternate;
+}
+@keyframes starfield-drift {
+	from {
+		background-position: 0 0;
+	}
+	to {
+		background-position: -480px 320px;
+	}
+}
+@keyframes starfield-twinkle {
+	0%,
+	100% {
+		opacity: 0.55;
+	}
+	50% {
+		opacity: 1;
+	}
+}
+@keyframes nebula-drift {
+	from {
+		transform: translate3d(-4%, -2%, 0) scale(1);
+	}
+	to {
+		transform: translate3d(4%, 3%, 0) scale(1.12);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.starfield-dynamic::before,
+	.starfield-dynamic::after {
+		display: none;
+	}
+}

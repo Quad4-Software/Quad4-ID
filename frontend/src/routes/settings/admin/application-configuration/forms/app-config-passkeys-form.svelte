@@ -20,13 +20,15 @@
 	const formSchema = z.object({
 		webauthnUserVerification: z.enum(['required', 'preferred']),
 		webauthnAllowSyncedPasskeys: z.boolean(),
-		webauthnAuthenticatorAttachment: z.enum(['any', 'platform', 'cross-platform'])
+		webauthnAuthenticatorAttachment: z.enum(['any', 'platform', 'cross-platform']),
+		signInAnomalyMode: z.enum(['disabled', 'detect', 'prevent'])
 	});
 
 	const initialConfig = {
 		webauthnUserVerification: appConfig.webauthnUserVerification,
 		webauthnAllowSyncedPasskeys: appConfig.webauthnAllowSyncedPasskeys,
-		webauthnAuthenticatorAttachment: appConfig.webauthnAuthenticatorAttachment
+		webauthnAuthenticatorAttachment: appConfig.webauthnAuthenticatorAttachment,
+		signInAnomalyMode: appConfig.signInAnomalyMode
 	};
 
 	const userVerificationOptions = {
@@ -52,6 +54,21 @@
 		'cross-platform': {
 			label: m.external_security_keys_only(),
 			description: m.external_security_keys_only_description()
+		}
+	};
+
+	const signInAnomalyOptions = {
+		disabled: {
+			label: m.sign_in_anomaly_disabled(),
+			description: m.sign_in_anomaly_disabled_description()
+		},
+		detect: {
+			label: m.sign_in_anomaly_detect(),
+			description: m.sign_in_anomaly_detect_description()
+		},
+		prevent: {
+			label: m.sign_in_anomaly_prevent(),
+			description: m.sign_in_anomaly_prevent_description()
 		}
 	};
 
@@ -136,6 +153,41 @@
 				<Select.Content>
 					<Select.Group>
 						{#each Object.entries(authenticatorAttachmentOptions) as [value, option] (value)}
+							<Select.Item {value} label={option.label}>
+								<div class="flex flex-col items-start gap-1">
+									<span class="font-medium">{option.label}</span>
+									<span class="text-muted-foreground text-xs">{option.description}</span>
+								</div>
+							</Select.Item>
+						{/each}
+					</Select.Group>
+				</Select.Content>
+			</Select.Root>
+		</Field.Field>
+
+		<Field.Field data-invalid={!!$inputs.signInAnomalyMode.error}>
+			<div>
+				<Field.Label for="sign-in-anomaly-mode">{m.sign_in_anomaly_detection()}</Field.Label>
+				<Field.Description>{m.sign_in_anomaly_detection_description()}</Field.Description>
+			</div>
+			<Select.Root
+				type="single"
+				value={$inputs.signInAnomalyMode.value}
+				onValueChange={(value) =>
+					($inputs.signInAnomalyMode.value = value as 'disabled' | 'detect' | 'prevent')}
+			>
+				<Select.Trigger
+					id="sign-in-anomaly-mode"
+					class="w-full"
+					aria-label={m.sign_in_anomaly_detection()}
+					aria-invalid={!!$inputs.signInAnomalyMode.error}
+					placeholder={m.sign_in_anomaly_detection()}
+				>
+					{signInAnomalyOptions[$inputs.signInAnomalyMode.value]?.label}
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Group>
+						{#each Object.entries(signInAnomalyOptions) as [value, option] (value)}
 							<Select.Item {value} label={option.label}>
 								<div class="flex flex-col items-start gap-1">
 									<span class="font-medium">{option.label}</span>

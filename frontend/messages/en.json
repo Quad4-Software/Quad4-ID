@@ -796,5 +796,16 @@
 	"pending_restore_canceled": "Staged restore canceled.",
 	"last_restore_succeeded": "Last restore succeeded",
 	"last_restore_succeeded_description": "\"{name}\" was restored successfully.",
-	"last_restore_failed": "Last restore failed"
+	"last_restore_failed": "Last restore failed",
+	"anomalous": "Anomalous",
+	"geolite_attribution": "This product includes GeoLite2 data created by MaxMind, available from https://www.maxmind.com.",
+	"audit_event_anomalous_sign_in_blocked": "Blocked anomalous sign-in",
+	"sign_in_anomaly_detection": "Sign-in anomaly detection",
+	"sign_in_anomaly_detection_description": "Flags sign-ins from countries the account has never used or from a different country too soon after the previous sign-in.",
+	"sign_in_anomaly_disabled": "Disabled",
+	"sign_in_anomaly_disabled_description": "No anomaly checks are performed on sign-in",
+	"sign_in_anomaly_detect": "Detect and notify",
+	"sign_in_anomaly_detect_description": "Anomalous sign-ins are allowed, flagged in the audit log, and reported by email",
+	"sign_in_anomaly_prevent": "Prevent",
+	"sign_in_anomaly_prevent_description": "Anomalous sign-ins are refused, recorded in the audit log, and reported by email"
 }

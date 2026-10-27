@@ -19,6 +19,7 @@ import (
 
 type NewLoginEmailSender interface {
 	SendNewLogin(ctx context.Context, dbConfig *appconfig.AppConfigModel, userFullName, userEmail, ipAddress, country, city, device, method string, dateTime time.Time) error
+	SendBlockedLogin(ctx context.Context, dbConfig *appconfig.AppConfigModel, userFullName, userEmail, ipAddress, country, city, device, method string, dateTime time.Time) error
 }
 
 type SessionTokenService interface {
@@ -85,8 +86,14 @@ func (m *Module) Create(ctx context.Context, event Event, ipAddress, userAgent, 
 }
 
 // CreateSignIn prepares browser recognition and notification delivery within the caller's transaction
-func (m *Module) CreateSignIn(ctx context.Context, event Event, ipAddress, userAgent, userID, browserToken string, tx *gorm.DB, notificationMode appconfig.AppConfigValue) SignInResult {
-	return m.service.CreateSignIn(ctx, event, ipAddress, userAgent, userID, browserToken, tx, notificationMode)
+// Callers must abort the login when the result is blocked
+func (m *Module) CreateSignIn(ctx context.Context, event Event, ipAddress, userAgent, userID, browserToken string, tx *gorm.DB, dbConfig *appconfig.AppConfigModel) SignInResult {
+	return m.service.CreateSignIn(ctx, event, ipAddress, userAgent, userID, browserToken, tx, dbConfig)
+}
+
+// RecordBlockedSignIn persists a refused anomalous sign-in after the caller has rolled the login transaction back
+func (m *Module) RecordBlockedSignIn(ctx context.Context, result SignInResult) {
+	m.service.RecordBlockedSignIn(ctx, result)
 }
 
 // SendSignInNotification must be called only after the login commits successfully
