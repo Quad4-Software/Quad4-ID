@@ -76,6 +76,7 @@ type AppConfigUpdateDto struct {
 	BackupS3SecretAccessKey                    string `json:"backupS3SecretAccessKey"`
 	BackupS3Prefix                             string `json:"backupS3Prefix"`
 	BackupS3ForcePathStyle                     string `json:"backupS3ForcePathStyle" binding:"omitempty,boolean_string"`
+	EnabledFeatures                            string `json:"enabledFeatures" binding:"omitempty,json_string_array"`
 }
 
 func (a AppConfigUpdateDto) Validate() error {

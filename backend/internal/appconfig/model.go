@@ -103,6 +103,8 @@ type AppConfigModel struct {
 	BackupS3SecretAccessKey AppConfigValue `json:"backupS3SecretAccessKey" env:"BACKUP_S3_SECRET_ACCESS_KEY" sensitive:"true"`
 	BackupS3Prefix          AppConfigValue `json:"backupS3Prefix" env:"BACKUP_S3_PREFIX"`
 	BackupS3ForcePathStyle  AppConfigValue `json:"backupS3ForcePathStyle" env:"BACKUP_S3_FORCE_PATH_STYLE" type:"bool"`
+	// Features
+	EnabledFeatures AppConfigValue `json:"enabledFeatures" env:"ENABLED_FEATURES"` // JSON-encoded array of feature ids
 }
 
 // appConfigEnvName returns the explicit environment variable name for a JSON configuration field
@@ -218,6 +220,9 @@ func getDefaultConfig() *AppConfigModel {
 		BackupIntervalHours:    "24",
 		BackupRetentionCount:   "14",
 		BackupS3ForcePathStyle: "false",
+		// Features
+		// Left unset so the feature module can tell a saved value from one it still has to derive from usage
+		EnabledFeatures: "",
 	}
 }
 
