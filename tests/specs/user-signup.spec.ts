@@ -116,7 +116,11 @@ test.describe('Invite Creation', () => {
 		const inviteLink = await page.getByTestId('invite-link').textContent();
 
 		// The invitee signs up in a separate context and waits for approval
-		const inviteeContext = await browser.newContext();
+		// The context inherits the admin storageState unless it is overridden, which would land the invitee on the account page instead of the signup form
+		const inviteeContext = await browser.newContext({
+			baseURL: test.info().project.use.baseURL,
+			storageState: { cookies: [], origins: [] }
+		});
 		const inviteePage = await inviteeContext.newPage();
 		await inviteePage.goto(inviteLink!.trim());
 		await inviteePage.getByLabel('First name').fill('Wait');
