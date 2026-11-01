@@ -213,7 +213,12 @@
 				{errorMessage ? m.try_again() : m.sign_in()}
 			</Button>
 		{/if}
-		<Button class="flex-1" variant="secondary" href={document.referrer || '/'}>
+		<Button
+			class="flex-1"
+			variant="secondary"
+			href={`/authorize?interaction=${encodeURIComponent(interactionSession.id)}&cancel=true`}
+			data-sveltekit-reload
+		>
 			{m.cancel()}
 		</Button>
 	</div>

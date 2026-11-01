@@ -550,13 +550,12 @@
 	}
 }
 
-/* Dynamic starfield layers for the dark auth surfaces, drifting stars and a slow nebula glow tinted by the accent color */
+/* Dynamic starfield layers for the dark auth surfaces, drifting twinkling stars */
 .starfield-dynamic {
 	position: relative;
 	isolation: isolate;
 }
-.starfield-dynamic::before,
-.starfield-dynamic::after {
+.starfield-dynamic::before {
 	content: '';
 	position: absolute;
 	inset: 0;
@@ -575,21 +574,6 @@
 		starfield-drift 240s linear infinite,
 		starfield-twinkle 9s ease-in-out infinite;
 }
-.starfield-dynamic::after {
-	z-index: 1;
-	background-image:
-		radial-gradient(
-			42% 55% at 78% 18%,
-			color-mix(in oklab, var(--primary) 22%, transparent),
-			transparent 70%
-		),
-		radial-gradient(
-			50% 60% at 18% 85%,
-			color-mix(in oklab, var(--primary) 14%, transparent),
-			transparent 70%
-		);
-	animation: nebula-drift 60s ease-in-out infinite alternate;
-}
 @keyframes starfield-drift {
 	from {
 		background-position: 0 0;
@@ -607,17 +591,8 @@
 		opacity: 1;
 	}
 }
-@keyframes nebula-drift {
-	from {
-		transform: translate3d(-4%, -2%, 0) scale(1);
-	}
-	to {
-		transform: translate3d(4%, 3%, 0) scale(1.12);
-	}
-}
 @media (prefers-reduced-motion: reduce) {
-	.starfield-dynamic::before,
-	.starfield-dynamic::after {
+	.starfield-dynamic::before {
 		display: none;
 	}
 }
