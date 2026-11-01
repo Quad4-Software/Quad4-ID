@@ -1,11 +1,12 @@
 <script lang="ts">
+	import AuditLogDateFilter from '#lib/components/audit-log-date-filter.svelte';
 	import AuditLogList from '#lib/components/audit-log-list.svelte';
 	import SearchableSelect from '#lib/components/form/searchable-select.svelte';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import * as Select from '#lib/components/ui/select/index.ts';
 	import { m } from '#lib/paraglide/messages.js';
 	import AuditLogService from '#lib/services/audit-log-service.ts';
-	import type { AuditLogFilter } from '#lib/types/audit-log.type.ts';
+	import type { AuditLogDateRange, AuditLogFilter } from '#lib/types/audit-log.type.ts';
 	import { eventTypes as eventTranslations } from '#lib/utils/audit-log-translator.ts';
 	import AuditLogSwitcher from '../audit-log-switcher.svelte';
 
@@ -18,6 +19,7 @@
 		location: '',
 		clientName: ''
 	});
+	let dateRange: AuditLogDateRange = $state({});
 
 	const locationTypes = $state({
 		external: 'External Networks',
@@ -39,6 +41,9 @@
 		<Card.Description class="mt-1">{m.see_all_recent_account_activities()}</Card.Description>
 	</Card.Header>
 	<Card.Content>
+		<div role="group" aria-label={m.filters()} class="mb-4 flex items-center gap-1">
+			<AuditLogDateFilter bind:range={dateRange} />
+		</div>
 		<div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
 			<div>
 				{#await auditLogService.listUsers()}
@@ -114,6 +119,6 @@
 				{/await}
 			</div>
 		</div>
-		<AuditLogList bind:this={auditLogListRef} isAdmin {filters} />
+		<AuditLogList bind:this={auditLogListRef} isAdmin {filters} {dateRange} />
 	</Card.Content>
 </Card.Root>

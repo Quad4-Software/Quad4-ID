@@ -172,6 +172,7 @@ func registerRoutes(r *gin.Engine, db *gorm.DB, svc *services, auth *authz.Middl
 	)
 	controller.NewOidcController(apiRouter, fileSizeLimitMiddleware, svc.oidcService, svc.appConfigService)
 	controller.NewUserController(apiRouter, fileSizeLimitMiddleware, svc.appConfigService, svc.userService, svc.webauthnModule, rateLimitMiddleware.Add(middleware.RateLimitSendEmailVerification))
+	svc.claimMappingPolicyModule.RegisterRoutes(apiRouter)
 	controller.NewAppConfigController(apiRouter, svc.appConfigService, svc.emailModule)
 	controller.NewBackupController(apiRouter, svc.backupService)
 	svc.ldapSyncModule.RegisterRoutes(apiRouter)

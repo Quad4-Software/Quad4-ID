@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	userAgentParser "github.com/mileusna/useragent"
 	"gorm.io/gorm"
 
 	"github.com/pocket-id/pocket-id/backend/internal/appconfig"
@@ -51,7 +52,11 @@ func (s *service) CreateSignIn(ctx context.Context, event Event, ipAddress, user
 		}
 	}
 
-	entry, created := s.Create(ctx, event, ipAddress, userAgent, userID, Data{}, tx)
+	data := Data{}
+	if s.isNewBrowser(ctx, tx, userID, userAgent) {
+		data["newBrowser"] = "true"
+	}
+	entry, created := s.Create(ctx, event, ipAddress, userAgent, userID, data, tx)
 	result.AuditLog = entry
 	result.Created = created
 	if !created {
@@ -95,7 +100,7 @@ func (s *service) CreateSignIn(ctx context.Context, event Event, ipAddress, user
 	var count int64
 	query := tx.WithContext(ctx).Model(&AuditLog{}).
 		Where("user_id = ? AND user_agent = ? AND id <> ?", userID, userAgent, entry.ID).
-		Where("event IN ?", []Event{EventSignIn, EventOneTimeAccessTokenSignIn, EventRemoteSignIn})
+		Where("event IN ?", signInEvents)
 	if ipAddress == "" {
 		query = query.Where("ip_address IS NULL")
 	} else {
@@ -128,8 +133,6 @@ func (s *service) detectSignInAnomalies(ctx context.Context, userID, country str
 	if mode == appconfig.SignInAnomalyDisabled || country == "" {
 		return nil
 	}
-
-	signInEvents := []Event{EventSignIn, EventOneTimeAccessTokenSignIn, EventRemoteSignIn}
 
 	// Two sign-ins from different countries inside the window cannot be the same person travelling
 	var latest AuditLog
@@ -166,6 +169,39 @@ func (s *service) detectSignInAnomalies(ctx context.Context, userID, country str
 		anomalies = append(anomalies, AnomalyNewCountry)
 	}
 	return anomalies
+}
+
+var signInEvents = []Event{EventSignIn, EventOneTimeAccessTokenSignIn, EventRemoteSignIn}
+
+// isNewBrowser reports whether the user has signed in before, but never with this browser on this operating system
+// It ignores versions, so a browser update is not a new browser, and it never flags an account's first sign-in
+func (s *service) isNewBrowser(ctx context.Context, tx *gorm.DB, userID, userAgent string) bool {
+	var agents []string
+	err := tx.WithContext(ctx).Model(&AuditLog{}).
+		Where("user_id = ? AND event IN ?", userID, signInEvents).
+		Distinct().
+		Pluck("user_agent", &agents).
+		Error
+	if err != nil {
+		slog.ErrorContext(ctx, "Failed to check sign-in browsers", slog.Any("error", err))
+		return false
+	}
+	if len(agents) == 0 {
+		return false
+	}
+
+	family := browserFamily(userAgent)
+	for _, agent := range agents {
+		if browserFamily(agent) == family {
+			return false
+		}
+	}
+	return true
+}
+
+func browserFamily(userAgent string) string {
+	ua := userAgentParser.Parse(userAgent)
+	return ua.Name + "|" + ua.OS
 }
 
 // SendSignInNotification sends only after the caller has completed the login successfully

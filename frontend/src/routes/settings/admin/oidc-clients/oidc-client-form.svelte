@@ -1,11 +1,14 @@
 <script lang="ts">
 	import FormInput from '#lib/components/form/form-input.svelte';
+	import SearchableSelect from '#lib/components/form/searchable-select.svelte';
 	import FormattedMessage from '#lib/components/formatted-message.svelte';
 	import * as Card from '#lib/components/ui/card/index.ts';
 	import * as Field from '#lib/components/ui/field/index.ts';
 	import { Switch } from '#lib/components/ui/switch/index.ts';
 	import { m } from '#lib/paraglide/messages.js';
+	import OidcClaimMappingPolicyService from '#lib/services/oidc-claim-mapping-policy-service.ts';
 	import appConfigStore from '#lib/stores/application-configuration-store.ts';
+	import type { OidcClaimMappingPolicyMetadataDto } from '#lib/types/oidc-claim-mapping-policy.type.ts';
 	import type {
 		OidcClient,
 		OidcClientCreateWithLogo,
@@ -17,16 +20,21 @@
 	import { createForm, type FormInput as FormInputState } from '#lib/utils/form-util.ts';
 	import { trackFormChanges } from '#lib/utils/unsaved-changes-util.svelte.ts';
 	import { callbackUrlSchema, optionalUrl } from '#lib/utils/zod-util.ts';
+	import { debounced } from '#lib/utils/debounce-util.ts';
+	import { LucideArrowRight } from '@lucide/svelte';
 	import { z } from 'zod/v4';
+	import { claimsCount, policyHref } from '../claim-mappings/claim-mapping-util';
 	import OidcCallbackUrlInput from './oidc-callback-url-input.svelte';
 	import OidcClientLogoPicker from './oidc-client-logo-picker.svelte';
 
 	let {
 		callback,
-		existingClient
+		existingClient,
+		claimMappingPolicies
 	}: {
 		existingClient: OidcClient;
 		callback: (client: OidcClientCreateWithLogo) => Promise<void>;
+		claimMappingPolicies?: OidcClaimMappingPolicyMetadataDto[];
 	} = $props();
 	let logo = $state<File | null | undefined>();
 	let darkLogo = $state<File | null | undefined>();
@@ -56,7 +64,8 @@
 		launchURL: existingClient.launchURL || '',
 		logoUrl: '',
 		darkLogoUrl: '',
-		pkceSupported: existingClient.pkceSupported || false
+		pkceSupported: existingClient.pkceSupported || false,
+		claimMappingPolicyId: existingClient.claimMappingPolicyId || ''
 	};
 
 	const formSchema = z.object({
@@ -72,7 +81,8 @@
 		skipConsent: z.boolean(),
 		launchURL: optionalUrl,
 		logoUrl: optionalUrl,
-		darkLogoUrl: optionalUrl
+		darkLogoUrl: optionalUrl,
+		claimMappingPolicyId: z.string()
 	});
 
 	type FormSchema = typeof formSchema;
@@ -80,6 +90,43 @@
 	const { inputs } = formStore;
 
 	const pkcePromptNeeded = $derived(!$inputs.pkceEnabled.value && client.pkceSupported);
+
+	const policyService = new OidcClaimMappingPolicyService();
+	const defaultPolicy = claimMappingPolicies?.find((p) => p.isDefault);
+	let policyResults = $state(claimMappingPolicies ?? []);
+	// Every policy loaded so far, so the selected one keeps its label when a search no longer returns it
+	let knownPolicies = $state(claimMappingPolicies ?? []);
+	let isPolicySearchLoading = $state(false);
+	const onPolicySearch = debounced(
+		async (search: string) => {
+			const result = await policyService.listClaimMappingPolicies({
+				search,
+				pagination: { page: 1, limit: 20 },
+				sort: { column: 'isDefault', direction: 'desc' }
+			});
+			policyResults = result.data;
+			knownPolicies = [
+				...knownPolicies,
+				...result.data.filter((p) => !knownPolicies.some((known) => known.id === p.id))
+			];
+		},
+		300,
+		(loading) => (isPolicySearchLoading = loading)
+	);
+	const selectedPolicy = $derived(
+		knownPolicies.find((p) => p.id === $inputs.claimMappingPolicyId.value)
+	);
+	const policyItems = $derived([
+		{ value: '', label: m.default_policy(), description: defaultPolicy?.name ?? '' },
+		...[
+			...(selectedPolicy && !policyResults.some((p) => p.id === selectedPolicy.id)
+				? [selectedPolicy]
+				: []),
+			...policyResults
+		].map((p) => ({ value: p.id, label: p.name, description: claimsCount(p.claimCount) }))
+	]);
+	// The policy whose claims the client gets, which is the default one while none is selected
+	const appliedPolicy = $derived(selectedPolicy ?? defaultPolicy);
 
 	async function saveClient(data: z.infer<FormSchema>) {
 		await callback({
@@ -383,4 +430,40 @@
 			</Field.Group>
 		</Card.Content>
 	</Card.Root>
+
+	{#if claimMappingPolicies}
+		<Card.Root>
+			<Card.Header>
+				<Card.Title>{m.claims()}</Card.Title>
+				<Card.Description>
+					{m.claims_section_description({ name: existingClient.name })}
+				</Card.Description>
+			</Card.Header>
+			<Card.Content class="flex flex-col gap-3">
+				<FormInput
+					label={m.claim_mapping_policy()}
+					description={m.claim_mapping_policy_helper()}
+					labelFor="claim-mapping-policy"
+					input={$inputs.claimMappingPolicyId}
+				>
+					<SearchableSelect
+						id="claim-mapping-policy"
+						items={policyItems}
+						bind:value={$inputs.claimMappingPolicyId.value}
+						isLoading={isPolicySearchLoading}
+						oninput={(e) => onPolicySearch(e.currentTarget.value)}
+					/>
+				</FormInput>
+				{#if appliedPolicy}
+					<a
+						href={policyHref(appliedPolicy.id)}
+						class="text-primary inline-flex w-fit items-center gap-1 text-sm font-medium hover:underline"
+					>
+						{m.see_the_claims_in_name({ name: appliedPolicy.name })}
+						<LucideArrowRight class="size-3.5" />
+					</a>
+				{/if}
+			</Card.Content>
+		</Card.Root>
+	{/if}
 </form>

@@ -5,16 +5,18 @@
 	import { m } from '#lib/paraglide/messages.js';
 	import AuditLogService from '#lib/services/audit-log-service.ts';
 	import type { AdvancedTableColumn } from '#lib/types/advanced-table.type.ts';
-	import type { AuditLog, AuditLogFilter } from '#lib/types/audit-log.type.ts';
+	import type { AuditLog, AuditLogDateRange, AuditLogFilter } from '#lib/types/audit-log.type.ts';
 	import { translateAuditLogEvent } from '#lib/utils/audit-log-translator.ts';
 	import { untrack } from 'svelte';
 
 	let {
 		isAdmin = false,
-		filters
+		filters,
+		dateRange = {}
 	}: {
 		isAdmin?: boolean;
 		filters?: AuditLogFilter;
+		dateRange?: AuditLogDateRange;
 	} = $props();
 
 	const auditLogService = new AuditLogService();
@@ -69,13 +71,13 @@
 	];
 
 	$effect(() => {
-		if (filters) {
-			void filters.userID;
-			void filters.event;
-			void filters.location;
-			void filters.clientName;
-			untrack(() => tableRef?.refresh());
-		}
+		void filters?.userID;
+		void filters?.event;
+		void filters?.location;
+		void filters?.clientName;
+		void dateRange.from;
+		void dateRange.to;
+		untrack(() => tableRef?.refresh());
 	});
 
 	export async function refresh() {
@@ -110,6 +112,11 @@
 		{#if item.data?.anomalies}
 			<Badge class="rounded-full" variant="destructive">{m.anomalous()}</Badge>
 		{/if}
+		{#if item.data?.newBrowser === 'true'}
+			<Badge class="rounded-full" variant="secondary" title={m.new_browser_hint()}
+				>{m.new_browser()}</Badge
+			>
+		{/if}
 	</span>
 {/snippet}
 
@@ -125,11 +132,14 @@
 	bind:this={tableRef}
 	fetchCallback={async (options) =>
 		isAdmin
-			? await auditLogService.listAllLogs({
-					...options,
-					filters: wrapFilters(filters)
-				})
-			: await auditLogService.list(options)}
+			? await auditLogService.listAllLogs(
+					{
+						...options,
+						filters: wrapFilters(filters)
+					},
+					dateRange
+				)
+			: await auditLogService.list(options, dateRange)}
 	defaultSort={{ column: 'createdAt', direction: 'desc' }}
 	withoutSearch
 	{columns}

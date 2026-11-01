@@ -199,7 +199,11 @@
 				secrets={clientSecrets}
 				oidcConfiguration={data.oidcConfiguration}
 			/>
-			<OidcForm existingClient={client} callback={updateClient} />
+			<OidcForm
+				existingClient={client}
+				claimMappingPolicies={data.claimMappingPolicies}
+				callback={updateClient}
+			/>
 			<OidcClientTokenLifetimesCard {client} callback={updateTokenLifetimes} />
 		</Tabs.Content>
 

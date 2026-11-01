@@ -42,6 +42,7 @@
 		{ href: '/settings/admin/users', label: m.users() },
 		{ href: '/settings/admin/user-groups', label: m.user_groups() },
 		{ href: '/settings/admin/oidc-clients', label: m.oidc_clients() },
+		{ href: '/settings/admin/claim-mappings', label: m.claim_mappings() },
 		{ href: '/settings/admin/apis', label: m.apis() },
 		{ href: '/settings/admin/api-keys', label: m.api_keys() },
 		{
