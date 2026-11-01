@@ -108,7 +108,7 @@ test('Cancel on the consent screen returns access_denied to the client', async (
 	const urlParams = createUrlParams(oidcClient);
 	await page.goto(`/authorize?${urlParams.toString()}`);
 
-	await expectScopes(page, ['Email address', 'Name, username and picture']);
+	await expectScopes(page, ['Email', 'Profile']);
 
 	const callbackUrl = await expectCallbackRedirect(page, oidcClient.callbackUrl, () =>
 		page.getByRole('link', { name: 'Cancel', exact: true }).click()
