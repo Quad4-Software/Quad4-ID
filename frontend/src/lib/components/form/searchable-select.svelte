@@ -69,11 +69,11 @@
 		{#snippet child({ props })}
 			<Button
 				variant="outline"
-				{id}
 				type="button"
 				role="combobox"
 				aria-expanded={open}
 				{...props}
+				{id}
 				class={restProps.class}
 			>
 				<span class="flex w-full justify-between">
@@ -111,7 +111,7 @@
 							value = item.value;
 							onSelect?.(item.value);
 							// If you need to focus the trigger, you may need to refactor to get the trigger id another way
-							closeAndFocusTrigger('popover-trigger');
+							closeAndFocusTrigger(id ?? 'popover-trigger');
 						}}
 					>
 						<LucideCheck
